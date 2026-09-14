@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import Profile from './components/Profile';
 import Login from './components/Login';
 import StudentDashboard from './components/StudentDashboard';
 import InstitutionDashboard from './components/InstitutionDashboard';
 import CompanyDashboard from './components/CompanyDashboard';
 import SkillAssessment from './components/SkillAssessment';
+import Profile from './components/Profile';
+import Settings from './components/Settings';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -157,18 +158,25 @@ function App() {
           )}
         </aside>
 
-        {/* Dashboard Content area with explicit routing */}
+        {/* Dashboard Content area */}
         <main className="flex-1 p-6 md:p-8">
           {role === 'student' && activeTab === 'dashboard' && <StudentDashboard />}
+          {role === 'student' && activeTab === 'profile' && <Profile />}
           {role === 'student' && activeTab === 'skill_assessment' && <SkillAssessment />}
-          {role === 'student' && activeTab !== 'dashboard' && activeTab !== 'skill_assessment' && (
+          {role === 'student' && activeTab === 'settings' && <Settings role="student" />}
+          
+          {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
+          {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}
+
+          {role === 'company' && activeTab === 'dashboard' && <CompanyDashboard />}
+          {role === 'company' && activeTab === 'settings' && <Settings role="company" />}
+
+          {/* Catch-all for modules under development */}
+          {activeTab !== 'dashboard' && activeTab !== 'profile' && activeTab !== 'skill_assessment' && activeTab !== 'settings' && (
             <div className="flex items-center justify-center h-64 text-slate-500 font-medium bg-white rounded-2xl border border-slate-200 shadow-xs">
               {activeTab.replace('_', ' ').toUpperCase()} Module - Coming Soon
             </div>
           )}
-
-          {role === 'institution' && <InstitutionDashboard />}
-          {role === 'company' && <CompanyDashboard />}
         </main>
       </div>
     </div>

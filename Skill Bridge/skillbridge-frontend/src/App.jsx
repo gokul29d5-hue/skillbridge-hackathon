@@ -33,15 +33,10 @@ function App() {
         </div>
         
         <div className="flex items-center gap-4">
-          <select 
-            value={role} 
-            onChange={(e) => { setRole(e.target.value); setActiveTab('dashboard'); }}
-            className="bg-slate-100 border-none text-sm font-medium rounded-lg px-3 py-2 outline-none cursor-pointer focus:ring-2 focus:ring-blue-600"
-          >
-            <option value="student">Student View</option>
-            <option value="institution">Institution View</option>
-            <option value="company">Company View</option>
-          </select>
+          {/* NEW: Locked Role Badge (Replaced the dropdown) */}
+          <span className="bg-slate-100 text-slate-600 text-xs font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider border border-slate-200">
+            {role} Portal
+          </span>
           
           <button 
             onClick={handleLogout}

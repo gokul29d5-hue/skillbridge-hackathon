@@ -56,7 +56,41 @@ function App() {
       <div className="flex flex-1 max-w-7xl w-full mx-auto">
         {/* Dynamic Sidebar based on active role */}
         <aside className="w-64 border-r border-slate-200 p-6 hidden md:block sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto">
-          {role === 'institution' ? (
+          {role === 'student' ? (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 px-2">
+                <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">🎓</div>
+                <div>
+                  <h2 className="font-bold text-slate-800 text-xs">SkillBridge</h2>
+                  <p className="text-[10px] text-slate-500">Student Portal</p>
+                </div>
+              </div>
+              <nav className="space-y-1">
+                {[
+                  { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
+                  { id: 'profile', label: 'My Profile', icon: '👤' },
+                  { id: 'skill_assessment', label: 'Skill Assessment', icon: '📊' },
+                  { id: 'learning', label: 'Learning & Courses', icon: '📖' },
+                  { id: 'internships', label: 'Internships & Jobs', icon: '💼' },
+                  { id: 'applications', label: 'My Applications', icon: '📄' },
+                  { id: 'portfolio', label: 'Digital Portfolio', icon: '📁' },
+                  { id: 'messages', label: 'Messages', icon: '💬' },
+                  { id: 'settings', label: 'Settings', icon: '⚙️' }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition cursor-pointer ${
+                      activeTab === item.id ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          ) : role === 'institution' ? (
             <div className="space-y-6">
               <div className="flex items-center gap-2 px-2">
                 <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">🎓</div>
@@ -89,7 +123,7 @@ function App() {
                 ))}
               </nav>
             </div>
-          ) : role === 'company' ? (
+          ) : (
             <div className="space-y-6">
               <div className="flex items-center gap-2 px-2">
                 <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">🏢</div>
@@ -124,21 +158,6 @@ function App() {
                 ))}
               </nav>
             </div>
-          ) : (
-            <nav className="space-y-2">
-              <button onClick={() => setActiveTab('dashboard')} className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-xl font-semibold text-sm cursor-pointer">
-                <span>📊</span> Dashboard
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm transition cursor-pointer">
-                <span>👤</span> My Profile
-              </button>
-              <button onClick={() => setActiveTab('messages')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm transition cursor-pointer">
-                <span>💬</span> Messages
-              </button>
-              <button onClick={() => setActiveTab('settings')} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm transition cursor-pointer">
-                <span>⚙️</span> Settings
-              </button>
-            </nav>
           )}
         </aside>
 

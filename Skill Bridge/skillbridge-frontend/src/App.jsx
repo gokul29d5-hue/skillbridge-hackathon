@@ -3,6 +3,7 @@ import Login from './components/Login';
 import StudentDashboard from './components/StudentDashboard';
 import InstitutionDashboard from './components/InstitutionDashboard';
 import CompanyDashboard from './components/CompanyDashboard';
+import SkillAssessment from './components/SkillAssessment';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -33,7 +34,6 @@ function App() {
         </div>
         
         <div className="flex items-center gap-4">
-          {/* NEW: Locked Role Badge (Replaced the dropdown) */}
           <span className="bg-slate-100 text-slate-600 text-xs font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider border border-slate-200">
             {role} Portal
           </span>
@@ -49,7 +49,7 @@ function App() {
 
       {/* Main Content Layout */}
       <div className="flex flex-1 max-w-7xl w-full mx-auto">
-        {/* Dynamic Sidebar based on active role */}
+        {/* Dynamic Sidebar */}
         <aside className="w-64 border-r border-slate-200 p-6 hidden md:block sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto">
           {role === 'student' ? (
             <div className="space-y-6">
@@ -156,9 +156,16 @@ function App() {
           )}
         </aside>
 
-        {/* Dashboard Content area */}
+        {/* Dashboard Content area with explicit routing */}
         <main className="flex-1 p-6 md:p-8">
-          {role === 'student' && <StudentDashboard />}
+          {role === 'student' && activeTab === 'dashboard' && <StudentDashboard />}
+          {role === 'student' && activeTab === 'skill_assessment' && <SkillAssessment />}
+          {role === 'student' && activeTab !== 'dashboard' && activeTab !== 'skill_assessment' && (
+            <div className="flex items-center justify-center h-64 text-slate-500 font-medium bg-white rounded-2xl border border-slate-200 shadow-xs">
+              {activeTab.replace('_', ' ').toUpperCase()} Module - Coming Soon
+            </div>
+          )}
+
           {role === 'institution' && <InstitutionDashboard />}
           {role === 'company' && <CompanyDashboard />}
         </main>

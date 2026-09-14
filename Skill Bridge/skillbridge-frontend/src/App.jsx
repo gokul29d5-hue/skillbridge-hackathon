@@ -11,7 +11,7 @@ function App() {
 
   // This is the magic bridge! It fetches data from your Python server.
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/')
+    fetch('https://skillbridge-api-vslj.onrender.com/')
       .then((response) => response.json())
       .then((data) => {
         setServerStatus(data.message); // This grabs "SkillBridge API is LIVE! 🚀"

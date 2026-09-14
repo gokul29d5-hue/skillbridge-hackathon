@@ -55,7 +55,7 @@ function App() {
       {/* Main Content Layout */}
       <div className="flex flex-1 max-w-7xl w-full mx-auto">
         {/* Dynamic Sidebar based on active role */}
-        <aside className="w-64 border-r border-slate-200 p-6 hidden md:block sticky top-20 h-[calc(100vh-5rem)]">
+        <aside className="w-64 border-r border-slate-200 p-6 hidden md:block sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto">
           {role === 'institution' ? (
             <div className="space-y-6">
               <div className="flex items-center gap-2 px-2">
@@ -81,6 +81,41 @@ function App() {
                     onClick={() => setActiveTab(item.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition cursor-pointer ${
                       activeTab === item.id ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          ) : role === 'company' ? (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 px-2">
+                <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">🏢</div>
+                <div>
+                  <h2 className="font-bold text-slate-800 text-xs">SkillBridge</h2>
+                  <p className="text-[10px] text-slate-500">Company Portal</p>
+                </div>
+              </div>
+              <nav className="space-y-1">
+                {[
+                  { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
+                  { id: 'post_opportunities', label: 'Post Opportunities', icon: '💼' },
+                  { id: 'talent_pool', label: 'Talent Pool', icon: '👥' },
+                  { id: 'applications', label: 'Applications', icon: '📄' },
+                  { id: 'learning_programs', label: 'Learning Programs', icon: '📖' },
+                  { id: 'industry_collaboration', label: 'Industry Collaboration', icon: '🤝' },
+                  { id: 'feedback', label: 'Feedback & Insights', icon: '💬' },
+                  { id: 'analytics_reports', label: 'Analytics & Reports', icon: '📈' },
+                  { id: 'company_profile', label: 'Company Profile', icon: '🏢' },
+                  { id: 'settings', label: 'Settings', icon: '⚙️' }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition cursor-pointer ${
+                      activeTab === item.id ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50'
                     }`}
                   >
                     <span>{item.icon}</span>

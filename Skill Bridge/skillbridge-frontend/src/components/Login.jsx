@@ -7,7 +7,7 @@ const Login = ({ onLoginSuccess }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('student'); // Only used for Sign Up
+  const [role, setRole] = useState('student');
   
   // UI States
   const [showPassword, setShowPassword] = useState(false);
@@ -40,10 +40,8 @@ const Login = ({ onLoginSuccess }) => {
       }
 
       if (isLoginMode) {
-        // SUCCESS: The database tells us which dashboard to open!
         onLoginSuccess(data.role);
       } else {
-        // SUCCESS: Account created
         alert("✅ Account created successfully in the database! Please log in.");
         setIsLoginMode(true);
         setPassword('');
@@ -53,6 +51,10 @@ const Login = ({ onLoginSuccess }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    alert("Google authentication UI is ready! We will connect this to Google Cloud API keys in a later step.");
   };
 
   return (
@@ -72,7 +74,6 @@ const Login = ({ onLoginSuccess }) => {
             </div>
           )}
 
-          {/* Role Selection (ONLY visible during Sign Up) */}
           {!isLoginMode && (
             <div className="flex bg-slate-100 rounded-lg p-1 mb-6">
               {['student', 'institution', 'company'].map((r) => (
@@ -139,11 +140,27 @@ const Login = ({ onLoginSuccess }) => {
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl hover:bg-blue-700 transition cursor-pointer disabled:opacity-70 mt-4"
+              className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl hover:bg-blue-700 transition cursor-pointer disabled:opacity-70 mt-4 shadow-sm"
             >
               {isLoading ? "Processing..." : (isLoginMode ? "Secure Login" : "Create Account")}
             </button>
           </form>
+
+          {/* NEW: Google Login Section */}
+          <div className="mt-6 flex items-center justify-between">
+            <span className="border-b w-1/5 lg:w-1/4"></span>
+            <span className="text-xs text-center text-slate-400 uppercase font-bold tracking-wider">Or continue with</span>
+            <span className="border-b w-1/5 lg:w-1/4"></span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 text-slate-700 font-bold py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer mt-4 shadow-sm"
+          >
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+            Sign in with Google
+          </button>
 
           <div className="mt-6 text-center">
             <button 
@@ -152,7 +169,7 @@ const Login = ({ onLoginSuccess }) => {
                 setIsLoginMode(!isLoginMode);
                 setError('');
               }} 
-              className="text-sm text-slate-600 hover:text-blue-600 font-semibold cursor-pointer"
+              className="text-sm text-slate-500 hover:text-blue-600 font-semibold cursor-pointer transition-colors"
             >
               {isLoginMode ? "Don't have an account? Sign up here." : "Already have an account? Log in."}
             </button>

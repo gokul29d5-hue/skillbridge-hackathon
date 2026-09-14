@@ -36,7 +36,7 @@ def get_student_data():
 @app.get("/api/institution")
 def get_institution_data():
     return {
-        "total_students": 1248,
+        "total_students": 9999,
         "active_opportunities": 38,
         "placed": 184,
         "placement_rate": "84%"

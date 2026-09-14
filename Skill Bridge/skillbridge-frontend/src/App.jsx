@@ -1,44 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import Sidebar from './components/Sidebar';
-import Navbar from './components/Navbar';
+import React, { useState } from 'react';
+import Login from './components/Login';
 import StudentDashboard from './components/StudentDashboard';
 import InstitutionDashboard from './components/InstitutionDashboard';
 import CompanyDashboard from './components/CompanyDashboard';
 
 function App() {
-  const [currentRole, setCurrentRole] = useState('student');
-  const [serverStatus, setServerStatus] = useState('Connecting to backend...');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [role, setRole] = useState('student');
 
-  // This is the magic bridge! It fetches data from your Python server.
-  useEffect(() => {
-    fetch('https://skillbridge-api-vslj.onrender.com/')
-      .then((response) => response.json())
-      .then((data) => {
-        setServerStatus(data.message); // This grabs "SkillBridge API is LIVE! 🚀"
-      })
-      .catch((error) => {
-        setServerStatus('Backend is offline (Start it with uvicorn!)');
-      });
-  }, []);
+  // This runs when they click the "Login" button on the Login screen
+  const handleLoginSuccess = (selectedRole) => {
+    setRole(selectedRole);
+    setIsLoggedIn(true);
+  };
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
+
+  // The Gatekeeper: If they aren't logged in, ONLY show the Login page
+  if (!isLoggedIn) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // If they are logged in, show the main application
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans antialiased text-gray-900">
-      <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col">
-        <Navbar currentRole={currentRole} setCurrentRole={setCurrentRole} />
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Top Navbar */}
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
+          <h1 className="text-xl font-bold text-slate-800">SkillBridge</h1>
+        </div>
         
-        <main className="p-8 pb-16">
-          {/* Live API Status Badge */}
-          <div className="mb-6 flex items-center gap-3 bg-blue-50 border border-blue-200 p-3 rounded-xl w-fit">
-            <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
-            <p className="text-xs font-bold text-blue-800">
-              System Status: <span className="font-medium">{serverStatus}</span>
-            </p>
-          </div>
+        <div className="flex items-center gap-4">
+          {/* Quick role switcher kept here so you can fast-switch during the demo */}
+          <select 
+            value={role} 
+            onChange={(e) => setRole(e.target.value)}
+            className="bg-slate-100 border-none text-sm font-medium rounded-lg px-3 py-2 outline-none cursor-pointer focus:ring-2 focus:ring-blue-600"
+          >
+            <option value="student">Student View</option>
+            <option value="institution">Institution View</option>
+            <option value="company">Company View</option>
+          </select>
+          
+          <button 
+            onClick={handleLogout}
+            className="text-sm font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition cursor-pointer"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
 
-          {currentRole === 'student' && <StudentDashboard />}
-          {currentRole === 'institution' && <InstitutionDashboard />}
-          {currentRole === 'company' && <CompanyDashboard />}
+      {/* Main Content Layout */}
+      <div className="flex flex-1 max-w-7xl w-full mx-auto">
+        {/* Sidebar Navigation */}
+        <aside className="w-64 border-r border-slate-200 p-6 hidden md:block">
+          <nav className="space-y-2">
+            <a href="#" className="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-xl font-semibold">
+              <span className="text-lg">📊</span> Dashboard
+            </a>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 rounded-xl font-medium transition">
+              <span className="text-lg">👤</span> My Profile
+            </a>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 rounded-xl font-medium transition">
+              <span className="text-lg">💬</span> Messages
+            </a>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 rounded-xl font-medium transition">
+              <span className="text-lg">⚙️</span> Settings
+            </a>
+          </nav>
+        </aside>
+
+        {/* Dashboard Content area that swaps based on role */}
+        <main className="flex-1 p-6 md:p-8">
+          {role === 'student' && <StudentDashboard />}
+          {role === 'institution' && <InstitutionDashboard />}
+          {role === 'company' && <CompanyDashboard />}
         </main>
       </div>
     </div>

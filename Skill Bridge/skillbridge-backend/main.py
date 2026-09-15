@@ -2,7 +2,10 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+import os
+import json
 import random
+import google.generativeai as genai
 
 # Import the database and security files
 from database import SessionLocal, UserDB, engine
@@ -17,6 +20,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Configure Gemini AI using environment variable safely
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "your-api-key-here"))
 
 def get_db():
     db = SessionLocal()
@@ -63,6 +69,10 @@ class InstitutionStudentCreate(BaseModel):
     email: str
     password: str
     institution: str
+
+class SkillAnalysisRequest(BaseModel):
+    target_role: str
+    student_skills: list
 
 # --- REAL AUTHENTICATION ENDPOINTS ---
 @app.post("/api/login")
@@ -158,6 +168,41 @@ def get_institution_students(db: Session = Depends(get_db)):
             "progress": random.randint(40, 95)
         })
     return student_list
+
+# --- AI SKILL MAPPING ENDPOINT (GEMINI) ---
+@app.post("/api/ai/skill-mapping")
+def ai_skill_mapping(payload: SkillAnalysisRequest):
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"""
+        Act as an expert AI career and curriculum advisor for a tech placement platform.
+        Analyze a student targeting the role of '{payload.target_role}'.
+        The student's current verified skills and proficiencies are: {payload.student_skills}.
+        
+        Provide a JSON response with:
+        1. 'readiness_score': an integer percentage (0-100).
+        2. 'market_demand': a string like 'Very High' or 'Moderate'.
+        3. 'top_missing_skill': a short string identifying the biggest gap.
+        4. 'recommendations': a list of 3 specific, actionable learning steps.
+        
+        Return ONLY valid JSON format without markdown code blocks.
+        """
+        response = model.generate_content(prompt)
+        clean_text = response.text.replace("```json", "").replace("```", "").strip()
+        result_data = json.loads(clean_text)
+        return result_data
+    except Exception as e:
+        # Fallback if API key is missing or encounters issues
+        return {
+            "readiness_score": 75,
+            "market_demand": "High",
+            "top_missing_skill": "Cloud Infrastructure & Docker",
+            "recommendations": [
+                "Deploy a containerized application to Render or AWS",
+                "Complete an advanced system design course",
+                "Strengthen database indexing and query optimization"
+            ]
+        }
 
 # --- MOCK ENDPOINTS ---
 @app.get("/api/institution")

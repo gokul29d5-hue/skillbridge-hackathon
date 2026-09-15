@@ -2,7 +2,6 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
 import random
 
 # Import the database and security files
@@ -26,17 +25,35 @@ def get_db():
     finally:
         db.close()
 
-# --- PYDANTIC SCHEMAS ---
-class UserCreate(BaseModel):
-    name: str
-    email: str
-    password: str
-    role: str
-    secret_code: Optional[str] = None  # New field for the secret admin key
+# --- AUTO-CREATE SUPER ADMIN ---
+@app.on_event("startup")
+def setup_super_admin():
+    db = SessionLocal()
+    # Check if the master admin account already exists
+    admin = db.query(UserDB).filter(UserDB.email == "admin@skillbridge.com").first()
+    if not admin:
+        # Create the master account if it doesn't exist
+        hashed_pw = get_password_hash("superadmin123")
+        new_admin = UserDB(
+            name="SkillBridge Owner", 
+            email="admin@skillbridge.com", 
+            hashed_password=hashed_pw, 
+            role="superadmin"
+        )
+        db.add(new_admin)
+        db.commit()
+    db.close()
 
+# --- PYDANTIC SCHEMAS ---
 class UserLogin(BaseModel):
     email: str
     password: str
+
+class SuperAdminPartnerCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str  # 'institution' or 'company'
 
 class InstitutionStudentCreate(BaseModel):
     name: str
@@ -45,45 +62,6 @@ class InstitutionStudentCreate(BaseModel):
     institution: str
 
 # --- REAL AUTHENTICATION ENDPOINTS ---
-
-@app.post("/api/signup")
-def signup(user: UserCreate, db: Session = Depends(get_db)):
-    # STRICT BLOCK 1: Prevent students from self-registering entirely
-    if user.role.lower() == 'student':
-        raise HTTPException(
-            status_code=403, 
-            detail="Students cannot self-register. Please contact your institution administrator for credentials."
-        )
-
-    # STRICT BLOCK 2: Prevent fake institutions (Require Secret Key)
-    if user.role.lower() in ['institution', 'company']:
-        if user.secret_code != 'VELTECH-ADMIN-2026':
-            raise HTTPException(
-                status_code=403, 
-                detail="Invalid Admin Access Code. You are not authorized to create a partner account."
-            )
-
-    # 1. Check if email is already in the database
-    db_user = db.query(UserDB).filter(UserDB.email == user.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # 2. Hash the password securely
-    hashed_pw = get_password_hash(user.password)
-    
-    # 3. Save the new user to the database
-    new_user = UserDB(
-        name=user.name,
-        email=user.email,
-        hashed_password=hashed_pw,
-        role=user.role
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    return {"message": "Account created successfully!", "role": new_user.role}
-
 @app.post("/api/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(UserDB).filter(UserDB.email == user.email).first()
@@ -97,17 +75,32 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         "role": db_user.role
     }
 
+# --- SUPER ADMIN ENDPOINTS ---
+@app.post("/api/superadmin/partners")
+def create_partner_account(partner: SuperAdminPartnerCreate, db: Session = Depends(get_db)):
+    db_user = db.query(UserDB).filter(UserDB.email == partner.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    hashed_pw = get_password_hash(partner.password)
+    new_partner = UserDB(
+        name=partner.name,
+        email=partner.email,
+        hashed_password=hashed_pw,
+        role=partner.role.lower()
+    )
+    db.add(new_partner)
+    db.commit()
+    return {"message": f"{partner.role.capitalize()} account created successfully!"}
 
 # --- DATABASE CLEANUP TOOL ---
 @app.delete("/api/admin/clear-users")
 def clear_all_users(db: Session = Depends(get_db)):
-    # This will delete every user in the database
     db.query(UserDB).delete()
     db.commit()
-    return {"message": "All test users deleted successfully. Database is completely clean!"}
+    return {"message": "All users deleted. Database is clean!"}
 
-
-# --- PHASE 2: INSTITUTION ENDPOINTS ---
+# --- INSTITUTION ENDPOINTS ---
 @app.post("/api/institution/students")
 def create_student_for_institution(student: InstitutionStudentCreate, db: Session = Depends(get_db)):
     db_user = db.query(UserDB).filter(UserDB.email == student.email).first()
@@ -115,7 +108,6 @@ def create_student_for_institution(student: InstitutionStudentCreate, db: Sessio
         raise HTTPException(status_code=400, detail="Student email already registered")
     
     hashed_pw = get_password_hash(student.password)
-    
     new_student = UserDB(
         name=student.name,
         email=student.email,
@@ -124,8 +116,6 @@ def create_student_for_institution(student: InstitutionStudentCreate, db: Sessio
     )
     db.add(new_student)
     db.commit()
-    db.refresh(new_student)
-    
     return {"message": f"Student {new_student.name} successfully provisioned!"}
 
 @app.get("/api/institution/students/list")
@@ -143,29 +133,15 @@ def get_institution_students(db: Session = Depends(get_db)):
         })
     return student_list
 
-
 # --- MOCK ENDPOINTS ---
-@app.get("/")
-def read_root():
-    return {"message": "SkillBridge API is LIVE! 🚀"}
-
 @app.get("/api/institution")
 def get_institution_data():
-    return {
-        "total_students": 1248,
-        "active_opportunities": 38,
-        "placed": 184,
-        "placement_rate": "84%"
-    }
+    return {"total_students": 1248, "active_opportunities": 38, "placed": 184, "placement_rate": "84%"}
 
 @app.get("/api/student")
 def get_student_data():
     return {
-        "name": "Test Student",
-        "college": "B.Tech IT",
-        "verified_skills": 3,
-        "certifications": 2,
-        "projects": 5,
+        "college": "B.Tech IT", "verified_skills": 3, "certifications": 2, "projects": 5,
         "skills": [
             {"name": "Python", "progress": 85, "level": "Advanced"},
             {"name": "React", "progress": 70, "level": "Intermediate"},

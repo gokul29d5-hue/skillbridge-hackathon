@@ -2,17 +2,19 @@ import os
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Use Render's PostgreSQL URL if available, otherwise fallback to local SQLite
+# Get DATABASE_URL from environment (Render PostgreSQL), fallback to local SQLite for testing
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./skillbridge.db")
 
-# PostgreSQL fix for Heroku/Render URLs if they start with 'postgres://' instead of 'postgresql://'
+# Fix for Render/Heroku URLs where SQLAlchemy expects 'postgresql://' instead of 'postgres://'
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, 
-    connect_args={"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {}
-)
+# Configure engine safely for both PostgreSQL and SQLite
+engine_args = {}
+if "sqlite" in SQLALCHEMY_DATABASE_URL:
+    engine_args["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, **engine_args)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -26,4 +28,5 @@ class UserDB(Base):
     role = Column(String) # 'student', 'institution', or 'company'
     name = Column(String)
 
+# Create tables in PostgreSQL automatically on startup
 Base.metadata.create_all(bind=engine)

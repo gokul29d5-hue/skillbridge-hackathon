@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-# Import the database and security files we just made
+# Import the database and security files
 from database import SessionLocal, UserDB, engine
 from security import get_password_hash, verify_password
 
@@ -35,6 +35,12 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+
+class InstitutionStudentCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+    institution: str
 
 # --- REAL AUTHENTICATION ENDPOINTS ---
 
@@ -78,7 +84,36 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         "role": db_user.role
     }
 
-# --- EXISTING MOCK ENDPOINTS (Kept so your dashboards still load for now) ---
+
+# --- PHASE 2: INSTITUTION ENDPOINTS ---
+
+@app.post("/api/institution/students")
+def create_student_for_institution(student: InstitutionStudentCreate, db: Session = Depends(get_db)):
+    # 1. Check if the student email already exists
+    db_user = db.query(UserDB).filter(UserDB.email == student.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Student email already registered")
+    
+    # 2. Hash the password
+    hashed_pw = get_password_hash(student.password)
+    
+    # 3. Save the new student (hardcoding the role to 'student')
+    new_student = UserDB(
+        name=student.name,
+        email=student.email,
+        hashed_password=hashed_pw,
+        role="student"
+    )
+    db.add(new_student)
+    db.commit()
+    db.refresh(new_student)
+    
+    return {
+        "message": f"Student {new_student.name} successfully added for {student.institution}!"
+    }
+
+
+# --- EXISTING MOCK ENDPOINTS (Kept so dashboards load) ---
 
 @app.get("/")
 def read_root():

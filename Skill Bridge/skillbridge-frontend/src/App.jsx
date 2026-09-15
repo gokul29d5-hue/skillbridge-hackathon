@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SuperAdminDashboard from './components/SuperAdminDashboard';
 import Login from './components/Login';
 import StudentDashboard from './components/StudentDashboard';
 import InstitutionDashboard from './components/InstitutionDashboard';

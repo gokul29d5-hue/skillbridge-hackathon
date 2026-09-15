@@ -4,14 +4,21 @@ const CompanyDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Dynamically fetch the company name created by the Super Admin
+  const companyName = localStorage.getItem('skillbridge_name') || 'Corporate Partner';
+
   useEffect(() => {
     fetch('https://skillbridge-api-vslj.onrender.com/api/company')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('API not found');
+        return res.json();
+      })
       .then(fetchedData => {
         setData(fetchedData);
         setLoading(false);
       })
       .catch(() => {
+        // Fallback data if the backend endpoint is unreachable
         setData({ active_openings: 6, total_applicants: 42, shortlisted: 12, interviews_scheduled: 5 });
         setLoading(false);
       });
@@ -22,12 +29,12 @@ const CompanyDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Welcome back, TechNova Solutions! 👋</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Welcome back, {companyName}! 👋</h2>
           <p className="text-sm text-slate-500 mt-1">Discover talent, post opportunities and build a stronger future with academia.</p>
         </div>
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4 rounded-xl">
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4 rounded-xl shadow-sm">
           <p className="text-xs uppercase font-semibold opacity-80">Industry Partner</p>
           <p className="text-sm font-medium mt-0.5">Corporate Talent Portal</p>
         </div>
@@ -35,22 +42,22 @@ const CompanyDashboard = () => {
 
       {/* Metric Cards connected to FastAPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-xs text-slate-500 uppercase font-semibold">Active Opportunities</p>
           <p className="text-3xl font-extrabold text-emerald-600 mt-2">{data.active_openings}</p>
           <span className="text-xs text-emerald-600 font-semibold mt-2 inline-block">↑ 3 this week</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-xs text-slate-500 uppercase font-semibold">Total Applications</p>
           <p className="text-3xl font-extrabold text-emerald-600 mt-2">{data.total_applicants}</p>
           <span className="text-xs text-emerald-600 font-semibold mt-2 inline-block">↑ 18% this week</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-xs text-slate-500 uppercase font-semibold">Shortlisted Candidates</p>
           <p className="text-3xl font-extrabold text-emerald-600 mt-2">{data.shortlisted}</p>
           <span className="text-xs text-emerald-600 font-semibold mt-2 inline-block">Ready for interview</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-xs text-slate-500 uppercase font-semibold">Ongoing Internships</p>
           <p className="text-3xl font-extrabold text-emerald-700 mt-2">{data.interviews_scheduled}</p>
           <span className="text-xs text-emerald-600 font-semibold mt-2 inline-block">Across departments</span>
@@ -58,10 +65,10 @@ const CompanyDashboard = () => {
       </div>
 
       {/* Recommended Talent Matches Section */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-slate-800 text-base">Recommended Talent Matches</h3>
-          <span className="text-xs text-emerald-600 font-semibold cursor-pointer">View All →</span>
+          <span className="text-xs text-emerald-600 font-semibold cursor-pointer hover:underline">View All →</span>
         </div>
         <div className="space-y-4">
           {[
@@ -82,7 +89,7 @@ const CompanyDashboard = () => {
                   ))}
                 </div>
               </div>
-              <button className="bg-emerald-600 text-white text-xs font-semibold px-5 py-2 rounded-lg hover:bg-emerald-700 transition cursor-pointer shadow-xs whitespace-nowrap">
+              <button className="bg-emerald-600 text-white text-xs font-semibold px-5 py-2 rounded-lg hover:bg-emerald-700 transition cursor-pointer shadow-sm whitespace-nowrap">
                 View Profile
               </button>
             </div>

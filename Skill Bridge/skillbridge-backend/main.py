@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 import random
 
 # Import the database and security files
@@ -18,7 +19,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dependency to open a database session for each request
 def get_db():
     db = SessionLocal()
     try:
@@ -31,7 +31,8 @@ class UserCreate(BaseModel):
     name: str
     email: str
     password: str
-    role: str  # 'institution' or 'company' only now
+    role: str
+    secret_code: Optional[str] = None  # New field for the secret admin key
 
 class UserLogin(BaseModel):
     email: str
@@ -47,12 +48,20 @@ class InstitutionStudentCreate(BaseModel):
 
 @app.post("/api/signup")
 def signup(user: UserCreate, db: Session = Depends(get_db)):
-    # STRICT BLOCK: Prevent students from self-registering
+    # STRICT BLOCK 1: Prevent students from self-registering entirely
     if user.role.lower() == 'student':
         raise HTTPException(
             status_code=403, 
             detail="Students cannot self-register. Please contact your institution administrator for credentials."
         )
+
+    # STRICT BLOCK 2: Prevent fake institutions (Require Secret Key)
+    if user.role.lower() in ['institution', 'company']:
+        if user.secret_code != 'VELTECH-ADMIN-2026':
+            raise HTTPException(
+                status_code=403, 
+                detail="Invalid Admin Access Code. You are not authorized to create a partner account."
+            )
 
     # 1. Check if email is already in the database
     db_user = db.query(UserDB).filter(UserDB.email == user.email).first()
@@ -77,10 +86,7 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/api/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
-    # 1. Find the user by email
     db_user = db.query(UserDB).filter(UserDB.email == user.email).first()
-    
-    # 2. Check if user exists AND password matches the hashed version
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
@@ -91,9 +97,14 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         "role": db_user.role
     }
 
+# --- DATABASE CLEANUP TOOL ---
+@app.delete("/api/admin/clear-users")
+def clear_all_users(db: Session = Depends(get_db)):
+    db.query(UserDB).delete()
+    db.commit()
+    return {"message": "All test users deleted successfully. Database is completely clean!"}
 
 # --- PHASE 2: INSTITUTION ENDPOINTS ---
-
 @app.post("/api/institution/students")
 def create_student_for_institution(student: InstitutionStudentCreate, db: Session = Depends(get_db)):
     db_user = db.query(UserDB).filter(UserDB.email == student.email).first()
@@ -112,16 +123,11 @@ def create_student_for_institution(student: InstitutionStudentCreate, db: Sessio
     db.commit()
     db.refresh(new_student)
     
-    return {
-        "message": f"Student {new_student.name} successfully provisioned!"
-    }
+    return {"message": f"Student {new_student.name} successfully provisioned!"}
 
 @app.get("/api/institution/students/list")
 def get_institution_students(db: Session = Depends(get_db)):
-    # Fetch all students from the database
     students = db.query(UserDB).filter(UserDB.role == "student").all()
-    
-    # Attach live mock activity data for the dashboard visual
     activity_statuses = ["Online", "Active 2h ago", "In Interview Session", "Practicing Python", "Viewing Dashboard"]
     
     student_list = []
@@ -132,11 +138,9 @@ def get_institution_students(db: Session = Depends(get_db)):
             "status": random.choice(activity_statuses),
             "progress": random.randint(40, 95)
         })
-    
     return student_list
 
-
-# --- EXISTING MOCK ENDPOINTS ---
+# --- MOCK ENDPOINTS ---
 @app.get("/")
 def read_root():
     return {"message": "SkillBridge API is LIVE! 🚀"}
@@ -154,7 +158,7 @@ def get_institution_data():
 def get_student_data():
     return {
         "name": "Test Student",
-        "college": "B.Tech IT • Vel Tech Multi Tech Engineering College",
+        "college": "B.Tech IT",
         "verified_skills": 3,
         "certifications": 2,
         "projects": 5,

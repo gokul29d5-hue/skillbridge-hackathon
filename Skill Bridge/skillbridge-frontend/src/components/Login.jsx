@@ -5,7 +5,8 @@ const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('institution'); // Defaulted to institution
+  const [role, setRole] = useState('institution'); 
+  const [secretCode, setSecretCode] = useState(''); // New state for the secret key
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +21,7 @@ const Login = ({ onLoginSuccess }) => {
 
     const payload = isLoginMode 
       ? { email, password } 
-      : { name, email, password, role };
+      : { name, email, password, role, secret_code: secretCode }; // Pass secret code to backend
 
     try {
       const response = await fetch(endpoint, {
@@ -43,6 +44,7 @@ const Login = ({ onLoginSuccess }) => {
       } else {
         setIsLoginMode(true);
         setError('Account created successfully! Please log in.');
+        setSecretCode(''); // Clear it on success
       }
     } catch (err) {
       setError(err.message || 'Server connection error');
@@ -75,71 +77,48 @@ const Login = ({ onLoginSuccess }) => {
           {!isLoginMode && (
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Full Name</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm"
-              />
+              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your name" className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm" />
             </div>
           )}
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm"
-            />
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm" />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm"
-            />
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm" />
           </div>
 
           {!isLoginMode && (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Select Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm bg-white"
-              >
-                {/* Students removed - must be created by institution */}
-                <option value="institution">Institution / College Staff</option>
-                <option value="company">Company / Recruiter</option>
-              </select>
-            </div>
+            <>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Select Role</label>
+                <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm bg-white">
+                  <option value="institution">Institution / College Staff</option>
+                  <option value="company">Company / Recruiter</option>
+                </select>
+              </div>
+              
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center justify-between">
+                  Admin Access Code
+                  <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Required</span>
+                </label>
+                <input type="password" required value={secretCode} onChange={(e) => setSecretCode(e.target.value)} placeholder="Enter authorization key" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm bg-white" />
+                <p className="text-[10px] text-slate-500 mt-2 font-medium">To prevent unauthorized access, only verified staff with the master key can create accounts.</p>
+              </div>
+            </>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-sm cursor-pointer disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-sm cursor-pointer disabled:opacity-50">
             {loading ? 'Processing...' : isLoginMode ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
         <div className="text-center pt-2 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={() => setIsLoginMode(!isLoginMode)}
-            className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
-          >
+          <button type="button" onClick={() => setIsLoginMode(!isLoginMode)} className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
             {isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>
         </div>

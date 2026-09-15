@@ -1,213 +1,233 @@
 import React, { useState, useEffect } from 'react';
 
-const InstitutionDashboard = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+const InstitutionDashboard = ({ onLogout }) => {
+  const [stats, setStats] = useState({
+    total_students: 0,
+    active_opportunities: 0,
+    placed: 0,
+    placement_rate: "0%"
+  });
+
+  const [studentName, setStudentName] = useState('');
+  const [studentEmail, setStudentEmail] = useState('');
+  const [studentPassword, setStudentPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  
+  // State for the Live Student Activity table
+  const [studentsList, setStudentsList] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+
+  const institutionName = localStorage.getItem('skillbridge_name') || 'Your Institution';
+
+  // Fetch Dashboard Stats & Student List
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch Stats
+      const statsRes = await fetch('https://skillbridge-api-vslj.onrender.com/api/institution');
+      if (statsRes.ok) setStats(await statsRes.json());
+
+      // Fetch Live Student Activity List
+      const studentsRes = await fetch('https://skillbridge-api-vslj.onrender.com/api/institution/students/list');
+      if (studentsRes.ok) setStudentsList(await studentsRes.json());
+    } catch (err) {
+      console.error("Failed to load dashboard data", err);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
 
   useEffect(() => {
-    fetch('https://skillbridge-api-vslj.onrender.com/api/institution')
-      .then(res => res.json())
-      .then(fetchedData => {
-        setData(fetchedData);
-        setLoading(false);
-      })
-      .catch(() => {
-        setData({ total_students: 1248, active_opportunities: 38, placed: 184, placement_rate: "84%" });
-        setLoading(false);
-      });
+    fetchDashboardData();
   }, []);
 
-  if (loading) return <div className="text-slate-500 p-8 font-medium">Loading Institution Dashboard...</div>;
+  const handleAddStudent = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    setError('');
+
+    try {
+      const response = await fetch('https://skillbridge-api-vslj.onrender.com/api/institution/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: studentName,
+          email: studentEmail,
+          password: studentPassword,
+          institution: institutionName
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to create student account');
+      }
+
+      setMessage(data.message);
+      setStudentName('');
+      setStudentEmail('');
+      setStudentPassword('');
+      
+      // Refresh the live student list and stats instantly
+      fetchDashboardData();
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Top Welcome Banner & Discover Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-col justify-center">
-          <h2 className="text-2xl font-bold text-slate-800">Welcome back, Dr. Meenakshi! 👋</h2>
-          <p className="text-sm text-slate-500 mt-1">Empowering your students with industry-ready skills and opportunities.</p>
-        </div>
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-6 flex flex-col justify-between shadow-xs">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider opacity-80">Discover Industry Opportunities</p>
-            <p className="text-xs text-blue-100 mt-1">Find internships, live projects and training programs tailored for your students.</p>
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+            S
           </div>
-          <button className="mt-4 bg-white text-blue-700 font-semibold py-2 px-4 rounded-xl text-xs hover:bg-blue-50 transition w-fit cursor-pointer shadow-xs">
-            Explore Opportunities →
+          <span className="text-xl font-bold">SkillBridge Institution Portal</span>
+        </div>
+        <div className="flex items-center space-x-4">
+          <span className="text-sm font-semibold text-slate-600">Welcome, {institutionName}</span>
+          <button 
+            onClick={onLogout}
+            className="text-sm font-bold text-red-600 hover:text-red-700 bg-red-50 px-4 py-2 rounded-lg transition cursor-pointer"
+          >
+            Logout
           </button>
         </div>
-      </div>
+      </nav>
 
-      {/* 4 Core Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs text-slate-500 uppercase font-semibold">Total Students</p>
-          <p className="text-3xl font-extrabold text-blue-600 mt-2">{data.total_students}</p>
-          <span className="text-xs text-emerald-600 font-semibold mt-2 inline-block">↑ 6% this month</span>
-        </div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs text-slate-500 uppercase font-semibold">Active Opportunities</p>
-          <p className="text-3xl font-extrabold text-blue-600 mt-2">{data.active_opportunities}</p>
-          <span className="text-xs text-emerald-600 font-semibold mt-2 inline-block">↑ 12% this month</span>
-        </div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs text-slate-500 uppercase font-semibold">Partner Industries</p>
-          <p className="text-3xl font-extrabold text-blue-600 mt-2">21</p>
-          <span className="text-xs text-emerald-600 font-semibold mt-2 inline-block">↑ 5% this month</span>
-        </div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs text-slate-500 uppercase font-semibold">Placed Students</p>
-          <p className="text-3xl font-extrabold text-blue-700 mt-2">{data.placed}</p>
-          <span className="text-xs text-emerald-600 font-semibold mt-2 inline-block">↑ 18% this year</span>
-        </div>
-      </div>
-
-      {/* Middle Section: Skill Gap, Recommended Opps, Recent Apps */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Skill Gap Analysis */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 text-sm">Skill Gap Analysis (Top Areas)</h3>
-            <span className="text-xs text-blue-600 font-semibold cursor-pointer">View Details →</span>
-          </div>
-          <div className="grid grid-cols-5 gap-2 pt-2">
-            {[
-              { skill: "Cloud & DevOps", val: 65, color: "bg-blue-600" },
-              { skill: "Data Science & ML", val: 58, color: "bg-emerald-600" },
-              { skill: "Full Stack", val: 52, color: "bg-purple-600" },
-              { skill: "Communication", val: 41, color: "bg-amber-500" },
-              { skill: "Cyber", val: 37, color: "bg-teal-600" }
-            ].map((bar, i) => (
-              <div key={i} className="bg-slate-50 p-2 rounded-xl text-center">
-                <div className="h-28 bg-slate-100 rounded-lg flex items-end justify-center p-1 relative mb-2">
-                  <div className={`w-full ${bar.color} rounded-md`} style={{ height: `${bar.val}%` }}></div>
-                </div>
-                <p className="text-[10px] font-bold text-slate-700 truncate">{bar.skill}</p>
-                <p className="text-[10px] text-slate-500">{bar.val}%</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recommended Opportunities */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 text-sm">Recommended Opportunities</h3>
-            <span className="text-xs text-blue-600 font-semibold cursor-pointer">View All →</span>
-          </div>
-          <div className="space-y-3">
-            {[
-              { title: "Software Development Intern", comp: "Google", duration: "6 weeks", mode: "Remote" },
-              { title: "Data Science Intern", comp: "Microsoft", duration: "8 weeks", mode: "Hybrid" },
-              { title: "Frontend Developer Intern", comp: "TCS", duration: "6 weeks", mode: "Onsite" }
-            ].map((opp, idx) => (
-              <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
-                <div>
-                  <h4 className="font-bold text-slate-800 text-xs">{opp.title}</h4>
-                  <p className="text-[11px] text-slate-500">{opp.comp} • {opp.duration} • {opp.mode}</p>
-                </div>
-                <button className="bg-blue-600 text-white text-[10px] font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-700 transition cursor-pointer">
-                  Explore
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Applications */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 text-sm">Recent Applications</h3>
-            <span className="text-xs text-blue-600 font-semibold cursor-pointer">View All →</span>
-          </div>
-          <div className="space-y-3">
-            {[
-              { name: "Aarav Sharma", role: "Software Dev Intern", status: "Applied", color: "bg-blue-50 text-blue-700" },
-              { name: "Arjun K.", role: "Data Science Intern", status: "Shortlisted", color: "bg-emerald-50 text-emerald-700" },
-              { name: "Sneha R.", role: "Frontend Developer", status: "Under Review", color: "bg-amber-50 text-amber-700" },
-              { name: "Vikram M.", role: "Web Developer", status: "Applied", color: "bg-blue-50 text-blue-700" }
-            ].map((app, idx) => (
-              <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
-                <div>
-                  <p className="font-bold text-slate-800">{app.name}</p>
-                  <p className="text-[10px] text-slate-500">{app.role}</p>
-                </div>
-                <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${app.color}`}>{app.status}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Section: Events, Performance Overview, Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Upcoming Events */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 text-sm">Upcoming Industry Events</h3>
-            <span className="text-xs text-blue-600 font-semibold cursor-pointer">View All →</span>
-          </div>
-          <div className="space-y-3">
-            {[
-              { date: "15 Apr", title: "Webinar: Career Guidance", time: "SkillBridge", type: "Online" },
-              { date: "18 Apr", title: "Hackathon 2025", time: "XYZ College", type: "Onsite" },
-              { date: "22 Apr", title: "Industry Guest Lecture", time: "TCS", type: "Online" }
-            ].map((ev, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-50 text-blue-700 font-bold p-2 rounded-lg text-center text-xs">
-                    {ev.date}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800">{ev.title}</p>
-                    <p className="text-[10px] text-slate-500">{ev.time}</p>
-                  </div>
-                </div>
-                <span className="bg-slate-200/60 text-slate-700 text-[10px] font-bold px-2 py-1 rounded-md">{ev.type}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Student Performance Overview */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 text-sm">Student Performance Overview</h3>
-            <span className="text-xs text-blue-600 font-semibold cursor-pointer">View Details →</span>
-          </div>
-          <div className="flex items-center justify-center py-6">
-            <div className="w-32 h-32 rounded-full border-8 border-blue-600 flex flex-col items-center justify-center text-center shadow-inner">
-              <span className="text-xl font-extrabold text-slate-800">{data.total_students}</span>
-              <span className="text-[10px] text-slate-500 uppercase font-bold">Total Students</span>
+      <main className="max-w-6xl mx-auto p-6 space-y-8">
+        
+        {/* Stats Grid */}
+        <section>
+          <h2 className="text-lg font-bold mb-4 uppercase text-slate-500 tracking-wider">Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <p className="text-sm text-slate-500 font-semibold uppercase mb-1">Total Students</p>
+              <p className="text-3xl font-extrabold text-blue-600">{stats.total_students + studentsList.length}</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <p className="text-sm text-slate-500 font-semibold uppercase mb-1">Active Opportunities</p>
+              <p className="text-3xl font-extrabold text-slate-800">{stats.active_opportunities}</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <p className="text-sm text-slate-500 font-semibold uppercase mb-1">Placed</p>
+              <p className="text-3xl font-extrabold text-emerald-600">{stats.placed}</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <p className="text-sm text-slate-500 font-semibold uppercase mb-1">Placement Rate</p>
+              <p className="text-3xl font-extrabold text-indigo-600">{stats.placement_rate}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Placed (184)</div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Internship (312)</div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span> In Training (406)</div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Others (346)</div>
-          </div>
-        </div>
+        </section>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
-          <h3 className="font-bold text-slate-800 text-sm mb-4">Quick Actions</h3>
-          <div className="space-y-2">
-            {[
-              "Post New Opportunity",
-              "Invite Industry Partner",
-              "View Student Skill Report",
-              "Manage Applications",
-              "Update Curriculum"
-            ].map((action, idx) => (
-              <button key={idx} className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-100 text-xs font-bold text-slate-700 flex justify-between items-center transition cursor-pointer">
-                {action}
-                <span className="text-slate-400">→</span>
-              </button>
-            ))}
+        {/* Create Student Section */}
+        <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="mb-6 border-b border-slate-100 pb-4">
+            <h2 className="text-xl font-bold text-slate-800">Provision New Student Account</h2>
+            <p className="text-sm text-slate-500 mt-1">Create official login credentials for your enrolled students.</p>
           </div>
-        </div>
-      </div>
+
+          {message && (
+            <div className="mb-6 p-4 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-sm font-semibold">
+              {message}
+            </div>
+          )}
+          
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-semibold">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleAddStudent} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Student Full Name</label>
+              <input type="text" required value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="e.g. John Doe" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm bg-slate-50" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Student Email</label>
+              <input type="email" required value={studentEmail} onChange={(e) => setStudentEmail(e.target.value)} placeholder="student@college.edu" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm bg-slate-50" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Assign Password</label>
+              <input type="password" required value={studentPassword} onChange={(e) => setStudentPassword(e.target.value)} placeholder="••••••••" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm bg-slate-50" />
+            </div>
+            <div className="md:col-span-3 mt-2 border-t border-slate-100 pt-6">
+              <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl text-sm transition shadow-sm cursor-pointer disabled:opacity-50 float-right">
+                {loading ? 'Creating Account...' : 'Create Student Account'}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {/* Live Student Activity Monitor */}
+        <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="mb-6 flex justify-between items-center border-b border-slate-100 pb-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">Live Student Activity Monitor</h2>
+              <p className="text-sm text-slate-500 mt-1">Track the progress and platform activity of provisioned students.</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+              <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Live System</span>
+            </div>
+          </div>
+
+          {loadingStudents ? (
+            <p className="text-sm text-slate-500 text-center py-8">Fetching live student data...</p>
+          ) : studentsList.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-8">No students provisioned yet. Use the form above to create the first account.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <th className="p-4 font-bold rounded-tl-lg">Student Name</th>
+                    <th className="p-4 font-bold">Email Account</th>
+                    <th className="p-4 font-bold">Current Status</th>
+                    <th className="p-4 font-bold rounded-tr-lg">Skill Progress</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                  {studentsList.map((student, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50 transition">
+                      <td className="p-4 font-semibold text-slate-800">{student.name}</td>
+                      <td className="p-4 text-slate-500">{student.email}</td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          student.status === 'Online' ? 'bg-emerald-100 text-emerald-700' :
+                          student.status.includes('Active') ? 'bg-amber-100 text-amber-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {student.status}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-full bg-slate-100 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full" 
+                              style={{ width: `${student.progress}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-bold text-slate-500">{student.progress}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+      </main>
     </div>
   );
 };

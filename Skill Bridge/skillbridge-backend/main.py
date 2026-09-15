@@ -149,3 +149,18 @@ def get_institution_data():
         "placed": 184,
         "placement_rate": "84%"
     }
+
+@app.get("/api/student")
+def get_student_data():
+    return {
+        "name": "Test Student",
+        "college": "B.Tech IT • Vel Tech Multi Tech Engineering College",
+        "verified_skills": 3,
+        "certifications": 2,
+        "projects": 5,
+        "skills": [
+            {"name": "Python", "progress": 85, "level": "Advanced"},
+            {"name": "React", "progress": 70, "level": "Intermediate"},
+            {"name": "SQL", "progress": 65, "level": "Intermediate"}
+        ]
+    }

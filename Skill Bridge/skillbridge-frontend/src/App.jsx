@@ -14,6 +14,7 @@ function App() {
   const [role, setRole] = useState(() => {
     return localStorage.getItem('skillbridge_role') || 'student';
   });
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const handleLoginSuccess = (selectedRole) => {
     setRole(selectedRole);
@@ -21,7 +22,7 @@ function App() {
     setActiveTab('dashboard');
   };
 
-    const handleLogout = () => {
+  const handleLogout = () => {
     localStorage.removeItem('skillbridge_logged_in');
     localStorage.removeItem('skillbridge_role');
     localStorage.removeItem('skillbridge_name');

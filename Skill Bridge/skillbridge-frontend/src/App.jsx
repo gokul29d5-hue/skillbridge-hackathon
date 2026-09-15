@@ -8,9 +8,12 @@ import Profile from './components/Profile';
 import Settings from './components/Settings';
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [role, setRole] = useState('student');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('skillbridge_logged_in') === 'true';
+  });
+  const [role, setRole] = useState(() => {
+    return localStorage.getItem('skillbridge_role') || 'student';
+  });
 
   const handleLoginSuccess = (selectedRole) => {
     setRole(selectedRole);

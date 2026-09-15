@@ -5,6 +5,7 @@ import StudentDashboard from './components/StudentDashboard';
 import InstitutionDashboard from './components/InstitutionDashboard';
 import CompanyDashboard from './components/CompanyDashboard';
 import SkillAssessment from './components/SkillAssessment';
+import SkillMapping from './components/SkillMapping';
 import Profile from './components/Profile';
 import Settings from './components/Settings';
 
@@ -82,6 +83,7 @@ function App() {
                   { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
                   { id: 'profile', label: 'My Profile', icon: '👤' },
                   { id: 'skill_assessment', label: 'Skill Assessment', icon: '📊' },
+                  { id: 'skill_mapping', label: 'AI Skill Mapping', icon: '🧠' },
                   { id: 'learning', label: 'Learning & Courses', icon: '📖' },
                   { id: 'internships', label: 'Internships & Jobs', icon: '💼' },
                   { id: 'applications', label: 'My Applications', icon: '📄' },
@@ -178,6 +180,7 @@ function App() {
           {role === 'student' && activeTab === 'dashboard' && <StudentDashboard />}
           {role === 'student' && activeTab === 'profile' && <Profile />}
           {role === 'student' && activeTab === 'skill_assessment' && <SkillAssessment />}
+          {role === 'student' && activeTab === 'skill_mapping' && <SkillMapping />}
           {role === 'student' && activeTab === 'settings' && <Settings role="student" />}
           
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
@@ -187,7 +190,7 @@ function App() {
           {role === 'company' && activeTab === 'settings' && <Settings role="company" />}
 
           {/* Catch-all for modules under development */}
-          {activeTab !== 'dashboard' && activeTab !== 'profile' && activeTab !== 'skill_assessment' && activeTab !== 'settings' && (
+          {activeTab !== 'dashboard' && activeTab !== 'profile' && activeTab !== 'skill_assessment' && activeTab !== 'skill_mapping' && activeTab !== 'settings' && (
             <div className="flex items-center justify-center h-64 text-slate-500 font-medium bg-white rounded-2xl border border-slate-200 shadow-xs">
               {activeTab.replace('_', ' ').toUpperCase()} Module - Coming Soon
             </div>

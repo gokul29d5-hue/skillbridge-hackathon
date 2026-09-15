@@ -55,6 +55,9 @@ class SuperAdminPartnerCreate(BaseModel):
     password: str
     role: str  # 'institution' or 'company'
 
+class PasswordUpdate(BaseModel):
+    new_password: str
+
 class InstitutionStudentCreate(BaseModel):
     name: str
     email: str
@@ -92,6 +95,29 @@ def create_partner_account(partner: SuperAdminPartnerCreate, db: Session = Depen
     db.add(new_partner)
     db.commit()
     return {"message": f"{partner.role.capitalize()} account created successfully!"}
+
+@app.get("/api/superadmin/partners")
+def get_all_partners(db: Session = Depends(get_db)):
+    partners = db.query(UserDB).filter(UserDB.role.in_(["institution", "company"])).all()
+    return [{"name": p.name, "email": p.email, "role": p.role} for p in partners]
+
+@app.delete("/api/superadmin/partners/{email}")
+def delete_partner(email: str, db: Session = Depends(get_db)):
+    partner = db.query(UserDB).filter(UserDB.email == email).first()
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    db.delete(partner)
+    db.commit()
+    return {"message": "Partner account deleted successfully"}
+
+@app.put("/api/superadmin/partners/{email}/password")
+def update_partner_password(email: str, payload: PasswordUpdate, db: Session = Depends(get_db)):
+    partner = db.query(UserDB).filter(UserDB.email == email).first()
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    partner.hashed_password = get_password_hash(payload.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
 
 # --- DATABASE CLEANUP TOOL ---
 @app.delete("/api/admin/clear-users")

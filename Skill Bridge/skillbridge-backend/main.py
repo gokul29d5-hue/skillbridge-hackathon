@@ -174,3 +174,12 @@ def get_student_data():
             {"name": "SQL", "progress": 65, "level": "Intermediate"}
         ]
     }
+
+@app.get("/api/company")
+def get_company_data():
+    return {
+        "active_openings": 6,
+        "total_applicants": 42,
+        "shortlisted": 12,
+        "interviews_scheduled": 5
+    }

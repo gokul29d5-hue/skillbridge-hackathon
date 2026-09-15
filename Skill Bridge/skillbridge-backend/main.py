@@ -168,3 +168,9 @@ def get_student_data():
             {"name": "SQL", "progress": 65, "level": "Intermediate"}
         ]
     }
+    @app.delete("/api/admin/clear-users")
+def clear_all_users(db: Session = Depends(get_db)):
+    # This will delete every user in the database
+    db.query(UserDB).delete()
+    db.commit()
+    return {"message": "All test users deleted successfully. Database is completely clean!"}

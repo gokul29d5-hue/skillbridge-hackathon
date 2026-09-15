@@ -2,32 +2,28 @@ import React, { useState } from 'react';
 
 const Login = ({ onLoginSuccess }) => {
   const [isLoginMode, setIsLoginMode] = useState(true);
-  
-  // Form States
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [role, setRole] = useState('student');
-  
-  // UI States
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
+    setLoading(true);
 
-    const endpoint = isLoginMode ? '/api/login' : '/api/signup';
-    const url = `https://skillbridge-api-vslj.onrender.com${endpoint}`;
+    const endpoint = isLoginMode 
+      ? 'https://skillbridge-api-vslj.onrender.com/api/login' 
+      : 'https://skillbridge-api-vslj.onrender.com/api/signup';
 
     const payload = isLoginMode 
       ? { email, password } 
       : { name, email, password, role };
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -36,145 +32,121 @@ const Login = ({ onLoginSuccess }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Authentication failed");
+        throw new Error(data.detail || 'Authentication failed');
       }
 
       if (isLoginMode) {
+        // Save session permanently until logout
+        localStorage.setItem('skillbridge_logged_in', 'true');
+        localStorage.setItem('skillbridge_role', data.role);
+        localStorage.setItem('skillbridge_name', data.name);
         onLoginSuccess(data.role);
       } else {
-        alert("✅ Account created successfully in the database! Please log in.");
+        // Switch to login mode after successful signup
         setIsLoginMode(true);
-        setPassword('');
+        setError('Account created successfully! Please log in.');
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Server connection error');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    alert("Google authentication UI is ready! We will connect this to Google Cloud API keys in a later step.");
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden border border-slate-100">
-        <div className="p-8 text-center bg-blue-600 text-white transition-all duration-300">
-          <h2 className="text-3xl font-bold">SkillBridge</h2>
-          <p className="text-blue-100 mt-2 text-sm">
-            {isLoginMode ? "Securely sign in to your portal" : "Create your account"}
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-6">
+      <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-6">
+        
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center text-white text-xl font-bold shadow-sm">
+            S
+          </div>
+          <h1 className="text-2xl font-extrabold text-slate-800">SkillBridge</h1>
+          <p className="text-xs text-slate-500">
+            {isLoginMode ? 'Sign in to access your portal' : 'Create your permanent account'}
           </p>
         </div>
 
-        <div className="p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm font-semibold rounded-xl text-center">
-              {error}
+        {error && (
+          <div className={`p-3 rounded-xl text-xs font-semibold text-center ${error.includes('successfully') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLoginMode && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Full Name</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm"
+              />
             </div>
           )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm"
+            />
+          </div>
 
           {!isLoginMode && (
-            <div className="flex bg-slate-100 rounded-lg p-1 mb-6">
-              {['student', 'institution', 'company'].map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRole(r)}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-md capitalize transition cursor-pointer ${
-                    role === r ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Select Role</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm bg-white"
+              >
+                <option value="student">Student</option>
+                <option value="institution">Institution / College Staff</option>
+                <option value="company">Company / Recruiter</option>
+              </select>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLoginMode && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Full Name / Organization</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
-                  placeholder="Enter name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-            )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            {loading ? 'Processing...' : isLoginMode ? 'Sign In' : 'Create Account'}
+          </button>
+        </form>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email ID</label>
-              <input
-                type="email"
-                required
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="relative">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none pr-10"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-8 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                {showPassword ? "🙈" : "👁️"}
-              </button>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl hover:bg-blue-700 transition cursor-pointer disabled:opacity-70 mt-4 shadow-sm"
-            >
-              {isLoading ? "Processing..." : (isLoginMode ? "Secure Login" : "Create Account")}
-            </button>
-          </form>
-
-          {/* NEW: Google Login Section */}
-          <div className="mt-6 flex items-center justify-between">
-            <span className="border-b w-1/5 lg:w-1/4"></span>
-            <span className="text-xs text-center text-slate-400 uppercase font-bold tracking-wider">Or continue with</span>
-            <span className="border-b w-1/5 lg:w-1/4"></span>
-          </div>
-
+        <div className="text-center pt-2 border-t border-slate-100">
           <button
             type="button"
-            onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 text-slate-700 font-bold py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer mt-4 shadow-sm"
+            onClick={() => setIsLoginMode(!isLoginMode)}
+            className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
           >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-            Sign in with Google
+            {isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>
-
-          <div className="mt-6 text-center">
-            <button 
-              type="button" 
-              onClick={() => {
-                setIsLoginMode(!isLoginMode);
-                setError('');
-              }} 
-              className="text-sm text-slate-500 hover:text-blue-600 font-semibold cursor-pointer transition-colors"
-            >
-              {isLoginMode ? "Don't have an account? Sign up here." : "Already have an account? Log in."}
-            </button>
-          </div>
         </div>
+
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('student');
+  const [role, setRole] = useState('institution'); // Defaulted to institution
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -36,13 +36,11 @@ const Login = ({ onLoginSuccess }) => {
       }
 
       if (isLoginMode) {
-        // Save session permanently until logout
         localStorage.setItem('skillbridge_logged_in', 'true');
         localStorage.setItem('skillbridge_role', data.role);
         localStorage.setItem('skillbridge_name', data.name);
         onLoginSuccess(data.role);
       } else {
-        // Switch to login mode after successful signup
         setIsLoginMode(true);
         setError('Account created successfully! Please log in.');
       }
@@ -57,14 +55,13 @@ const Login = ({ onLoginSuccess }) => {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-6">
       <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-6">
         
-        {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="w-12 h-12 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center text-white text-xl font-bold shadow-sm">
             S
           </div>
           <h1 className="text-2xl font-extrabold text-slate-800">SkillBridge</h1>
           <p className="text-xs text-slate-500">
-            {isLoginMode ? 'Sign in to access your portal' : 'Create your permanent account'}
+            {isLoginMode ? 'Sign in to access your portal' : 'Create your partner account'}
           </p>
         </div>
 
@@ -121,7 +118,7 @@ const Login = ({ onLoginSuccess }) => {
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm bg-white"
               >
-                <option value="student">Student</option>
+                {/* Students removed - must be created by institution */}
                 <option value="institution">Institution / College Staff</option>
                 <option value="company">Company / Recruiter</option>
               </select>

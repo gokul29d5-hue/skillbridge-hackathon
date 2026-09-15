@@ -30,10 +30,17 @@ function App() {
     setIsLoggedIn(false);
   };
 
+  // 1. If not logged in, show the secure Login screen
   if (!isLoggedIn) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
+  // 2. NEW: If Super Admin logs in, show them the dedicated Master Control Room (bypassing normal sidebars)
+  if (role === 'superadmin') {
+    return <SuperAdminDashboard onLogout={handleLogout} />;
+  }
+
+  // 3. For all other roles, show your standard Layout with the Sidebar
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Top Navbar */}

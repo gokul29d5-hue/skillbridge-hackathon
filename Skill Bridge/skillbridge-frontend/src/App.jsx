@@ -85,7 +85,7 @@ function App() {
                   { id: 'profile', label: 'My Profile', icon: '👤' },
                   { id: 'skill_assessment', label: 'Skill Assessment', icon: '📊' },
                   { id: 'skill_mapping', label: 'AI Skill Mapping', icon: '🧠' },
-                  { id: 'learning', label: 'Learning & Courses', icon: '📖' },
+                  { id: 'challenges', label: 'Community Challenges', icon: '🌍' },
                   { id: 'internships', label: 'Internships & Jobs', icon: '💼' },
                   { id: 'applications', label: 'My Applications', icon: '📄' },
                   { id: 'portfolio', label: 'Digital Portfolio', icon: '📁' },

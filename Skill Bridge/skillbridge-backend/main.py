@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import List  # <-- NEW: Added this to handle lists of skills
 import os
 import json
 import random
@@ -35,10 +36,8 @@ def get_db():
 @app.on_event("startup")
 def setup_super_admin():
     db = SessionLocal()
-    # Check if the master admin account already exists
     admin = db.query(UserDB).filter(UserDB.email == "admin@skillbridge.com").first()
     if not admin:
-        # Create the master account if it doesn't exist
         hashed_pw = get_password_hash("superadmin123")
         new_admin = UserDB(
             name="SkillBridge Owner", 
@@ -59,7 +58,7 @@ class SuperAdminPartnerCreate(BaseModel):
     name: str
     email: str
     password: str
-    role: str  # 'institution' or 'company'
+    role: str
 
 class PasswordUpdate(BaseModel):
     new_password: str
@@ -73,6 +72,21 @@ class InstitutionStudentCreate(BaseModel):
 class SkillAnalysisRequest(BaseModel):
     target_role: str
     student_skills: list
+
+# --- NEW: SCHEMAS FOR CHALLENGES & LEDGER ---
+class ChallengeCreate(BaseModel):
+    title: str
+    organization: str
+    description: str
+    skills_required: List[str]
+    bounty_or_credit: str
+
+class ContributionLog(BaseModel):
+    student_email: str
+    project_name: str
+    task_description: str
+    git_commits_count: int
+    verified_by_mentor: bool
 
 # --- REAL AUTHENTICATION ENDPOINTS ---
 @app.post("/api/login")
@@ -128,13 +142,6 @@ def update_partner_password(email: str, payload: PasswordUpdate, db: Session = D
     partner.hashed_password = get_password_hash(payload.new_password)
     db.commit()
     return {"message": "Password updated successfully"}
-
-# --- DATABASE CLEANUP TOOL ---
-@app.delete("/api/admin/clear-users")
-def clear_all_users(db: Session = Depends(get_db)):
-    db.query(UserDB).delete()
-    db.commit()
-    return {"message": "All users deleted. Database is clean!"}
 
 # --- INSTITUTION ENDPOINTS ---
 @app.post("/api/institution/students")
@@ -192,7 +199,6 @@ def ai_skill_mapping(payload: SkillAnalysisRequest):
         result_data = json.loads(clean_text)
         return result_data
     except Exception as e:
-        # Fallback if API key is missing or encounters issues
         return {
             "readiness_score": 75,
             "market_demand": "High",
@@ -203,6 +209,59 @@ def ai_skill_mapping(payload: SkillAnalysisRequest):
                 "Strengthen database indexing and query optimization"
             ]
         }
+
+# --- NEW: COMMUNITY CHALLENGES MARKETPLACE ENDPOINTS ---
+
+# In-memory mock database for global challenges
+GLOBAL_CHALLENGES = [
+    {
+        "id": 1,
+        "title": "Smart Water Management Dashboard",
+        "organization": "Local Municipal Corp",
+        "description": "Build an IoT-integrated web portal to track water distribution metrics.",
+        "skills_required": ["React", "Python", "IoT APIs"],
+        "bounty_or_credit": "Verified Industry Project Credit"
+    },
+    {
+        "id": 2,
+        "title": "Open Source Educational App for Rural Schools",
+        "organization": "Global NGO Alliance",
+        "description": "Develop a lightweight offline-first PWA for interactive math learning.",
+        "skills_required": ["React", "PWA", "Tailwind CSS"],
+        "bounty_or_credit": "$500 Grant + Certificate"
+    }
+]
+
+@app.get("/api/challenges")
+def get_challenges():
+    return GLOBAL_CHALLENGES
+
+@app.post("/api/challenges")
+def post_challenge(challenge: ChallengeCreate):
+    new_item = {
+        "id": len(GLOBAL_CHALLENGES) + 1,
+        "title": challenge.title,
+        "organization": challenge.organization,
+        "description": challenge.description,
+        "skills_required": challenge.skills_required,
+        "bounty_or_credit": challenge.bounty_or_credit
+    }
+    GLOBAL_CHALLENGES.append(new_item)
+    return {"message": "Community challenge posted successfully globally!", "challenge": new_item}
+
+# --- NEW: INDIVIDUAL CONTRIBUTION LEDGER ENDPOINTS ---
+CONTRIBUTIONS_DB = []
+
+@app.post("/api/ledger/contributions")
+def log_contribution(log: ContributionLog):
+    CONTRIBUTIONS_DB.append(log.dict())
+    return {"message": "Contribution successfully recorded to the Individual Ledger!"}
+
+@app.get("/api/ledger/{student_email}")
+def get_student_ledger(student_email: str):
+    user_logs = [c for c in CONTRIBUTIONS_DB if c["student_email"] == student_email]
+    return {"student_email": student_email, "total_verified_contributions": len(user_logs), "logs": user_logs}
+
 
 # --- MOCK ENDPOINTS ---
 @app.get("/api/institution")

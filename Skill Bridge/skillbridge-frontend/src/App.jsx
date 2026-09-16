@@ -1,6 +1,7 @@
 import Applications from './components/Applications';
 import Portfolio from './components/Portfolio';
 import Internships from './components/Internships';
+import Messages from './components/Messages';
 import Learning from './components/Learning';
 import CommunityChallenges from './components/CommunityChallenges';
 import React, { useState } from 'react';
@@ -196,6 +197,7 @@ function App() {
           {role === 'student' && activeTab === 'learning' && <Learning />}
           {role === 'student' && activeTab === 'applications' && <Applications />}
           {role === 'student' && activeTab === 'portfolio' && <Portfolio />}
+          {role === 'student' && activeTab === 'messages' && <Messages />}
           
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
           {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}

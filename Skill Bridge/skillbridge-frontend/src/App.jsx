@@ -183,6 +183,7 @@ function App() {
           {role === 'student' && activeTab === 'skill_assessment' && <SkillAssessment />}
           {role === 'student' && activeTab === 'skill_mapping' && <SkillMapping />}
           {role === 'student' && activeTab === 'settings' && <Settings role="student" />}
+          {role === 'student' && activeTab === 'challenges' && <CommunityChallenges />}
           
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
           {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}

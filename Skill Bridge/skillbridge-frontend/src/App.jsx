@@ -1,3 +1,4 @@
+import InstitutionStudents from './components/InstitutionStudents';
 import PostOpportunities from './components/PostOpportunities';
 import TalentPool from './components/TalentPool';
 import Applications from './components/Applications';
@@ -205,6 +206,7 @@ function App() {
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
           {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}
           {role === 'institution' && activeTab === 'analytics' && <InstitutionAnalytics />}
+          {role === 'institution' && activeTab === 'students' && <InstitutionStudents />}
 
           {role === 'company' && activeTab === 'dashboard' && <CompanyDashboard />}
           {role === 'company' && activeTab === 'settings' && <Settings role="company" />}

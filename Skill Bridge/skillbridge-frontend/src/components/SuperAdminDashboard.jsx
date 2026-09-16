@@ -1,3 +1,4 @@
+import SuperAdminOverview from './SuperAdminOverview';
 import React, { useState } from 'react';
 import SuperAdminPartners from './SuperAdminPartners';
 import Settings from './Settings';
@@ -74,6 +75,7 @@ const SuperAdminDashboard = ({ onLogout }) => {
           {/* This is where the magic happens! */}
           {activeTab === 'partners' && <SuperAdminPartners />}
           {activeTab === 'settings' && <Settings role="superadmin" />}
+          {activeTab === 'dashboard' && <SuperAdminOverview />}
         </main>
       </div>
     </div>

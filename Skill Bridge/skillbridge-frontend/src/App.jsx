@@ -1,4 +1,5 @@
 import Applications from './components/Applications';
+import Portfolio from './components/Portfolio';
 import Internships from './components/Internships';
 import Learning from './components/Learning';
 import CommunityChallenges from './components/CommunityChallenges';
@@ -195,6 +196,7 @@ function App() {
           {role === 'student' && activeTab === 'internships' && <Internships />}
           {role === 'student' && activeTab === 'learning' && <Learning />}
           {role === 'student' && activeTab === 'applications' && <Applications />}
+          {role === 'student' && activeTab === 'portfolio' && <Portfolio />}
           
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
           {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}

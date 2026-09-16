@@ -1,15 +1,16 @@
+import os
+import json
+import random
+from typing import List, Optional
+
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List  # <-- NEW: Added this to handle lists of skills
-import os
-import json
-import random
 import google.generativeai as genai
 
 # Import the database and security files
-from database import SessionLocal, UserDB, engine
+from database import SessionLocal, engine, UserDB, Opportunity
 from security import get_password_hash, verify_password
 
 app = FastAPI(title="SkillBridge API")
@@ -49,7 +50,10 @@ def setup_super_admin():
         db.commit()
     db.close()
 
-# --- PYDANTIC SCHEMAS ---
+# ==========================================
+# PYDANTIC SCHEMAS (Data Validation)
+# ==========================================
+
 class UserLogin(BaseModel):
     email: str
     password: str
@@ -73,7 +77,6 @@ class SkillAnalysisRequest(BaseModel):
     target_role: str
     student_skills: list
 
-# --- NEW: SCHEMAS FOR CHALLENGES & LEDGER ---
 class ChallengeCreate(BaseModel):
     title: str
     organization: str
@@ -88,7 +91,20 @@ class ContributionLog(BaseModel):
     git_commits_count: int
     verified_by_mentor: bool
 
-# --- REAL AUTHENTICATION ENDPOINTS ---
+class OpportunityCreate(BaseModel):
+    title: str
+    job_type: str    # Maps to the "type" field in React (Internship, etc.)
+    location: str
+    stipend: str
+    skills: str
+    description: str
+    company_id: int  # We need to know which company posted this!
+
+# ==========================================
+# API ENDPOINTS
+# ==========================================
+
+# --- AUTHENTICATION ---
 @app.post("/api/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(UserDB).filter(UserDB.email == user.email).first()
@@ -97,6 +113,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     
     return {
         "message": "Login successful",
+        "id": db_user.id,
         "name": db_user.name,
         "email": db_user.email,
         "role": db_user.role
@@ -195,95 +212,4 @@ def ai_skill_mapping(payload: SkillAnalysisRequest):
         Return ONLY valid JSON format without markdown code blocks.
         """
         response = model.generate_content(prompt)
-        clean_text = response.text.replace("```json", "").replace("```", "").strip()
-        result_data = json.loads(clean_text)
-        return result_data
-    except Exception as e:
-        return {
-            "readiness_score": 75,
-            "market_demand": "High",
-            "top_missing_skill": "Cloud Infrastructure & Docker",
-            "recommendations": [
-                "Deploy a containerized application to Render or AWS",
-                "Complete an advanced system design course",
-                "Strengthen database indexing and query optimization"
-            ]
-        }
-
-# --- NEW: COMMUNITY CHALLENGES MARKETPLACE ENDPOINTS ---
-
-# In-memory mock database for global challenges
-GLOBAL_CHALLENGES = [
-    {
-        "id": 1,
-        "title": "Smart Water Management Dashboard",
-        "organization": "Local Municipal Corp",
-        "description": "Build an IoT-integrated web portal to track water distribution metrics.",
-        "skills_required": ["React", "Python", "IoT APIs"],
-        "bounty_or_credit": "Verified Industry Project Credit"
-    },
-    {
-        "id": 2,
-        "title": "Open Source Educational App for Rural Schools",
-        "organization": "Global NGO Alliance",
-        "description": "Develop a lightweight offline-first PWA for interactive math learning.",
-        "skills_required": ["React", "PWA", "Tailwind CSS"],
-        "bounty_or_credit": "$500 Grant + Certificate"
-    }
-]
-
-@app.get("/api/challenges")
-def get_challenges():
-    return GLOBAL_CHALLENGES
-
-@app.post("/api/challenges")
-def post_challenge(challenge: ChallengeCreate):
-    new_item = {
-        "id": len(GLOBAL_CHALLENGES) + 1,
-        "title": challenge.title,
-        "organization": challenge.organization,
-        "description": challenge.description,
-        "skills_required": challenge.skills_required,
-        "bounty_or_credit": challenge.bounty_or_credit
-    }
-    GLOBAL_CHALLENGES.append(new_item)
-    return {"message": "Community challenge posted successfully globally!", "challenge": new_item}
-
-# --- NEW: INDIVIDUAL CONTRIBUTION LEDGER ENDPOINTS ---
-CONTRIBUTIONS_DB = []
-
-@app.post("/api/ledger/contributions")
-def log_contribution(log: ContributionLog):
-    CONTRIBUTIONS_DB.append(log.dict())
-    return {"message": "Contribution successfully recorded to the Individual Ledger!"}
-
-@app.get("/api/ledger/{student_email}")
-def get_student_ledger(student_email: str):
-    user_logs = [c for c in CONTRIBUTIONS_DB if c["student_email"] == student_email]
-    return {"student_email": student_email, "total_verified_contributions": len(user_logs), "logs": user_logs}
-
-
-# --- MOCK ENDPOINTS ---
-@app.get("/api/institution")
-def get_institution_data():
-    return {"total_students": 1248, "active_opportunities": 38, "placed": 184, "placement_rate": "84%"}
-
-@app.get("/api/student")
-def get_student_data():
-    return {
-        "college": "B.Tech IT", "verified_skills": 3, "certifications": 2, "projects": 5,
-        "skills": [
-            {"name": "Python", "progress": 85, "level": "Advanced"},
-            {"name": "React", "progress": 70, "level": "Intermediate"},
-            {"name": "SQL", "progress": 65, "level": "Intermediate"}
-        ]
-    }
-
-@app.get("/api/company")
-def get_company_data():
-    return {
-        "active_openings": 6,
-        "total_applicants": 42,
-        "shortlisted": 12,
-        "interviews_scheduled": 5
-    }
+        clean_text = response.text.replace("```json", "").replace("

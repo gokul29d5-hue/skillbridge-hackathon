@@ -1,3 +1,4 @@
+import TalentPool from './components/TalentPool';
 import Applications from './components/Applications';
 import Portfolio from './components/Portfolio';
 import Internships from './components/Internships';
@@ -206,6 +207,7 @@ function App() {
 
           {role === 'company' && activeTab === 'dashboard' && <CompanyDashboard />}
           {role === 'company' && activeTab === 'settings' && <Settings role="company" />}
+          {role === 'company' && activeTab === 'talent_pool' && <TalentPool />}
 
           {/* Catch-all for modules under development */}
           {activeTab !== 'dashboard' && activeTab !== 'profile' && activeTab !== 'skill_assessment' && activeTab !== 'skill_mapping' && activeTab !== 'settings' && (

@@ -1,3 +1,4 @@
+import Applications from './components/Applications';
 import Internships from './components/Internships';
 import Learning from './components/Learning';
 import CommunityChallenges from './components/CommunityChallenges';
@@ -90,6 +91,7 @@ function App() {
                   { id: 'skill_mapping', label: 'AI Skill Mapping', icon: '🧠' },
                   { id: 'challenges', label: 'Community Challenges', icon: '🌍' },
                   { id: 'internships', label: 'Internships & Jobs', icon: '💼' },
+                  { id: 'applications', label: 'My Applications', icon: '📄' },
                   { id: 'learning', label: 'Learning & Courses', icon: '📖' },
                   { id: 'ledger', label: 'Contribution Ledger', icon: '🧾' },
                   { id: 'applications', label: 'My Applications', icon: '📄' },
@@ -192,6 +194,7 @@ function App() {
           {role === 'student' && activeTab === 'ledger' && <ContributionLedger />}
           {role === 'student' && activeTab === 'internships' && <Internships />}
           {role === 'student' && activeTab === 'learning' && <Learning />}
+          {role === 'student' && activeTab === 'applications' && <Applications />}
           
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
           {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}

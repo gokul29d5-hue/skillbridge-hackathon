@@ -88,6 +88,7 @@ function App() {
                   { id: 'skill_mapping', label: 'AI Skill Mapping', icon: '🧠' },
                   { id: 'challenges', label: 'Community Challenges', icon: '🌍' },
                   { id: 'internships', label: 'Internships & Jobs', icon: '💼' },
+                  { id: 'ledger', label: 'Contribution Ledger', icon: '🧾' },
                   { id: 'applications', label: 'My Applications', icon: '📄' },
                   { id: 'portfolio', label: 'Digital Portfolio', icon: '📁' },
                   { id: 'messages', label: 'Messages', icon: '💬' },
@@ -185,6 +186,7 @@ function App() {
           {role === 'student' && activeTab === 'skill_mapping' && <SkillMapping />}
           {role === 'student' && activeTab === 'settings' && <Settings role="student" />}
           {role === 'student' && activeTab === 'challenges' && <CommunityChallenges />}
+          {role === 'student' && activeTab === 'ledger' && <ContributionLedger />}
           
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
           {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}

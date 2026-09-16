@@ -1,6 +1,7 @@
 import Applications from './components/Applications';
 import Portfolio from './components/Portfolio';
 import Internships from './components/Internships';
+import InstitutionAnalytics from './components/InstitutionAnalytics';
 import Messages from './components/Messages';
 import Learning from './components/Learning';
 import CommunityChallenges from './components/CommunityChallenges';
@@ -201,6 +202,7 @@ function App() {
           
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
           {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}
+          {role === 'institution' && activeTab === 'analytics' && <InstitutionAnalytics />}
 
           {role === 'company' && activeTab === 'dashboard' && <CompanyDashboard />}
           {role === 'company' && activeTab === 'settings' && <Settings role="company" />}

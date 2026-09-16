@@ -1,3 +1,5 @@
+import React, { useState } from 'react';
+import SuperAdminPartners from './components/SuperAdminPartners';
 import InstitutionStudents from './components/InstitutionStudents';
 import PostOpportunities from './components/PostOpportunities';
 import TalentPool from './components/TalentPool';
@@ -8,7 +10,6 @@ import InstitutionAnalytics from './components/InstitutionAnalytics';
 import Messages from './components/Messages';
 import Learning from './components/Learning';
 import CommunityChallenges from './components/CommunityChallenges';
-import React, { useState } from 'react';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import ContributionLedger from './components/ContributionLedger';
 import Login from './components/Login';
@@ -47,12 +48,12 @@ function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // 2. NEW: If Super Admin logs in, show them the dedicated Master Control Room (bypassing normal sidebars)
+  // 2. If Super Admin logs in, show them the dedicated Master Control Room
   if (role === 'superadmin') {
     return <SuperAdminDashboard onLogout={handleLogout} />;
   }
 
-  // 3. For all other roles, show your standard Layout with the Sidebar
+  // 3. For all other roles, show standard Layout with the Sidebar
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Top Navbar */}
@@ -189,7 +190,7 @@ function App() {
         </aside>
 
         {/* Dashboard Content area */}
-        <main className="flex-1 p-6 md:p-8">
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
           {role === 'student' && activeTab === 'dashboard' && <StudentDashboard />}
           {role === 'student' && activeTab === 'profile' && <Profile />}
           {role === 'student' && activeTab === 'skill_assessment' && <SkillAssessment />}
@@ -212,13 +213,6 @@ function App() {
           {role === 'company' && activeTab === 'settings' && <Settings role="company" />}
           {role === 'company' && activeTab === 'talent_pool' && <TalentPool />}
           {role === 'company' && activeTab === 'post_opportunities' && <PostOpportunities />}
-
-          {/* Catch-all for modules under development */}
-          {activeTab !== 'dashboard' && activeTab !== 'profile' && activeTab !== 'skill_assessment' && activeTab !== 'skill_mapping' && activeTab !== 'settings' && (
-            <div className="flex items-center justify-center h-64 text-slate-500 font-medium bg-white rounded-2xl border border-slate-200 shadow-xs">
-              {activeTab.replace('_', ' ').toUpperCase()} Module - Coming Soon
-            </div>
-          )}
         </main>
       </div>
     </div>

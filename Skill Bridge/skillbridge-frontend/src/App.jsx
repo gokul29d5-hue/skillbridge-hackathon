@@ -1,4 +1,5 @@
 import Internships from './components/Internships';
+import Learning from './components/Learning';
 import CommunityChallenges from './components/CommunityChallenges';
 import React, { useState } from 'react';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
@@ -89,6 +90,7 @@ function App() {
                   { id: 'skill_mapping', label: 'AI Skill Mapping', icon: '🧠' },
                   { id: 'challenges', label: 'Community Challenges', icon: '🌍' },
                   { id: 'internships', label: 'Internships & Jobs', icon: '💼' },
+                  { id: 'learning', label: 'Learning & Courses', icon: '📖' },
                   { id: 'ledger', label: 'Contribution Ledger', icon: '🧾' },
                   { id: 'applications', label: 'My Applications', icon: '📄' },
                   { id: 'portfolio', label: 'Digital Portfolio', icon: '📁' },
@@ -189,6 +191,7 @@ function App() {
           {role === 'student' && activeTab === 'challenges' && <CommunityChallenges />}
           {role === 'student' && activeTab === 'ledger' && <ContributionLedger />}
           {role === 'student' && activeTab === 'internships' && <Internships />}
+          {role === 'student' && activeTab === 'learning' && <Learning />}
           
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
           {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}

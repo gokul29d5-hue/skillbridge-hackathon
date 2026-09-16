@@ -1,3 +1,4 @@
+import Internships from './components/Internships';
 import CommunityChallenges from './components/CommunityChallenges';
 import React, { useState } from 'react';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
@@ -187,6 +188,7 @@ function App() {
           {role === 'student' && activeTab === 'settings' && <Settings role="student" />}
           {role === 'student' && activeTab === 'challenges' && <CommunityChallenges />}
           {role === 'student' && activeTab === 'ledger' && <ContributionLedger />}
+          {role === 'student' && activeTab === 'internships' && <Internships />}
           
           {role === 'institution' && activeTab === 'dashboard' && <InstitutionDashboard />}
           {role === 'institution' && activeTab === 'settings' && <Settings role="institution" />}

@@ -21,6 +21,41 @@ const PostOpportunities = () => {
     setIsSubmitting(true);
     setStatusMessage(null);
 
+    try {
+      const response = await fetch('https://skillbridge-api-vslj.onrender.com/api/opportunities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          job_type: formData.job_type,
+          location: formData.location,
+          stipend: formData.stipend,
+          skills: formData.skills,
+          description: formData.description,
+          company_id: parseInt(companyId)
+        })
+      });
+
+      // NEW: Read the exact error from Python!
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to post opportunity");
+      }
+      
+      setStatusMessage({ type: 'success', text: 'Success! Opportunity broadcasted to the Student Talent Pool.' });
+      
+      // Clear the form
+      setFormData({
+        title: '', job_type: 'Internship', location: '', stipend: '', skills: '', description: ''
+      });
+      
+    } catch (error) {
+      // NEW: Display the real error message on the screen
+      setStatusMessage({ type: 'error', text: error.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+
     // In a production app, this ID comes from the logged-in user's session.
     // For your prototype, if it's missing, we default to 1 so the demo never breaks.
     const companyId = localStorage.getItem('skillbridge_user_id') || 1;

@@ -1,3 +1,4 @@
+import CommunityChallenges from './components/CommunityChallenges';
 import React, { useState } from 'react';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import Login from './components/Login';

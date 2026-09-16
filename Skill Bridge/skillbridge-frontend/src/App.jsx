@@ -95,7 +95,6 @@ function App() {
                   { id: 'applications', label: 'My Applications', icon: '📄' },
                   { id: 'learning', label: 'Learning & Courses', icon: '📖' },
                   { id: 'ledger', label: 'Contribution Ledger', icon: '🧾' },
-                  { id: 'applications', label: 'My Applications', icon: '📄' },
                   { id: 'portfolio', label: 'Digital Portfolio', icon: '📁' },
                   { id: 'messages', label: 'Messages', icon: '💬' },
                   { id: 'settings', label: 'Settings', icon: '⚙️' }

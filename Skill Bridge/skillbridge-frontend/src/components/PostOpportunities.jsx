@@ -9,207 +9,182 @@ const PostOpportunities = () => {
     skills: '',
     description: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState(null);
+  const [status, setStatus] = useState({ type: '', message: '' });
+  const [loading, setLoading] = useState(false);
+
+  // Dynamically use the correct live API URL
+  const API_URL = import.meta.env.VITE_API_URL || 'https://skillbridge-api-live.onrender.com';
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setStatusMessage(null);
+    setLoading(true);
+    setStatus({ type: '', message: '' });
 
+    // Safely get company ID from localStorage
+    let user;
     try {
-      const response = await fetch('https://skillbridge-api-vslj.onrender.com/api/opportunities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formData.title,
-          job_type: formData.job_type,
-          location: formData.location,
-          stipend: formData.stipend,
-          skills: formData.skills,
-          description: formData.description,
-          company_id: parseInt(companyId)
-        })
-      });
-
-      // NEW: Read the exact error from Python!
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to post opportunity");
-      }
-      
-      setStatusMessage({ type: 'success', text: 'Success! Opportunity broadcasted to the Student Talent Pool.' });
-      
-      // Clear the form
-      setFormData({
-        title: '', job_type: 'Internship', location: '', stipend: '', skills: '', description: ''
-      });
-      
+      user = JSON.parse(localStorage.getItem('user'));
     } catch (error) {
-      // NEW: Display the real error message on the screen
-      setStatusMessage({ type: 'error', text: error.message });
-    } finally {
-      setIsSubmitting(false);
+      user = null;
     }
 
-    // In a production app, this ID comes from the logged-in user's session.
-    // For your prototype, if it's missing, we default to 1 so the demo never breaks.
-    const companyId = localStorage.getItem('skillbridge_user_id') || 1;
+    // If no user is logged in, use a fallback company ID (e.g., 2) so the app doesn't break during testing
+    const companyId = user && user.id ? user.id : 2; 
 
     try {
-      const response = await fetch('https://skillbridge-api-vslj.onrender.com/api/opportunities', {
+      const response = await fetch(`${API_URL}/api/opportunities`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           title: formData.title,
           job_type: formData.job_type,
           location: formData.location,
           stipend: formData.stipend,
           skills: formData.skills,
-          description: formData.description,
-          company_id: parseInt(companyId)
+          description: formData.description || "Detailed responsibilities and requirements will be discussed during the interview.",
+          company_id: companyId
         })
       });
 
-      if (!response.ok) throw new Error("Failed to post opportunity");
-      
-      setStatusMessage({ type: 'success', text: 'Success! Opportunity broadcasted to the Student Talent Pool.' });
-      
-      // Clear the form
-      setFormData({
-        title: '', job_type: 'Internship', location: '', stipend: '', skills: '', description: ''
-      });
-      
+      const data = await response.json();
+
+      if (response.ok) {
+        setStatus({ type: 'success', message: 'Opportunity posted successfully to the live database!' });
+        setFormData({ title: '', job_type: 'Internship', location: '', stipend: '', skills: '', description: '' });
+      } else {
+        setStatus({ type: 'error', message: `Could not post: ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}` });
+      }
     } catch (error) {
-      setStatusMessage({ type: 'error', text: 'Error posting opportunity. Check your connection.' });
+      setStatus({ type: 'error', message: 'Error posting opportunity. Check your API URL connection.' });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-900 to-slate-900 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <span className="bg-emerald-500/30 text-emerald-300 text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider border border-emerald-500/30">
-            Recruitment Pipeline
-          </span>
-          <h2 className="text-2xl font-extrabold mt-2">Post an Opportunity</h2>
-          <p className="text-sm text-slate-300 mt-1">Broadcast internships and full-time roles directly to verified student talent.</p>
-        </div>
+      {/* Header Banner */}
+      <div className="bg-slate-900 rounded-2xl p-8 text-white shadow-sm">
+        <span className="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider">Recruitment Pipeline</span>
+        <h1 className="text-3xl font-extrabold mt-4 mb-2">Post an Opportunity</h1>
+        <p className="text-slate-400 text-sm">Broadcast internships and full-time roles directly to verified student talent.</p>
       </div>
 
-      {/* Form Container */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8">
+      {/* Form Section */}
+      <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
         
-        {statusMessage && (
-          <div className={`mb-6 p-4 rounded-xl text-sm font-bold border ${statusMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-            {statusMessage.text}
+        {status.message && (
+          <div className={`p-4 rounded-xl mb-6 text-sm font-bold ${status.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`}>
+            {status.message}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Opportunity Title</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Opportunity Title</label>
               <input 
                 type="text" 
                 name="title"
-                value={formData.title}
-                onChange={handleChange}
-                required 
-                placeholder="e.g. Junior React Developer" 
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition"
+                required
+                value={formData.title} 
+                onChange={handleChange} 
+                placeholder="e.g. Junior React Developer"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Role Type</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Role Type</label>
               <select 
-                name="job_type"
-                value={formData.job_type}
+                name="job_type" 
+                value={formData.job_type} 
                 onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition bg-white"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
               >
                 <option value="Internship">Internship</option>
-                <option value="Full-Time Placement">Full-Time Placement</option>
-                <option value="Freelance/Contract">Freelance / Contract</option>
+                <option value="Full-time">Full-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Freelance">Freelance</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Location</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Location</label>
               <input 
                 type="text" 
                 name="location"
-                value={formData.location}
-                onChange={handleChange}
-                required 
-                placeholder="e.g. Chennai (Hybrid) or Remote" 
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition"
+                required
+                value={formData.location} 
+                onChange={handleChange} 
+                placeholder="e.g. Remote, Bangalore, Chennai"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Stipend / Salary</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Stipend / Salary</label>
               <input 
                 type="text" 
                 name="stipend"
-                value={formData.stipend}
-                onChange={handleChange}
-                required 
-                placeholder="e.g. ₹15,000/month" 
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition"
+                required
+                value={formData.stipend} 
+                onChange={handleChange} 
+                placeholder="e.g. $1500/month or ₹30,000/month"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Required Skills (Comma separated)</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Required Skills (Comma Separated)</label>
               <input 
                 type="text" 
                 name="skills"
-                value={formData.skills}
-                onChange={handleChange}
-                required 
-                placeholder="e.g. React, Node.js, PostgreSQL" 
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition"
+                required
+                value={formData.skills} 
+                onChange={handleChange} 
+                placeholder="e.g. Python, React, SQL"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
-
+            
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Job Description</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Job Description</label>
               <textarea 
                 name="description"
-                value={formData.description}
-                onChange={handleChange}
-                required 
-                rows="5"
-                placeholder="Describe the responsibilities and what the student will learn..." 
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition resize-none"
+                required
+                value={formData.description} 
+                onChange={handleChange} 
+                placeholder="Describe the responsibilities, requirements, and benefits..."
+                rows="4"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               ></textarea>
             </div>
-
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-100">
+          <div className="flex justify-end pt-4">
             <button 
               type="submit" 
-              disabled={isSubmitting}
-              className={`px-8 py-3 rounded-xl text-sm font-bold text-white shadow-sm transition ${isSubmitting ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'}`}
+              disabled={loading}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer"
             >
-              {isSubmitting ? 'Broadcasting...' : 'Publish Opportunity'}
+              {loading ? 'Posting...' : 'Post Opportunity'}
             </button>
           </div>
+
         </form>
       </div>
-
     </div>
   );
 };

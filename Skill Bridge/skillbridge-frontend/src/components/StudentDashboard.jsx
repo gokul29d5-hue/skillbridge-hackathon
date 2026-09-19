@@ -42,8 +42,14 @@ const StudentDashboard = () => {
     });
   }, [API_URL]);
 
-  // --- NEW: Handle the Apply Button Click ---
+  // --- UPDATED: Handle the Apply Button Click ---
   const handleApply = async (opportunityId) => {
+    // Prevent applying to hardcoded fallback jobs
+    if (!opportunityId) {
+      alert("This is a sample job. Please log in as a Company to post real jobs, and then apply to them!");
+      return;
+    }
+
     const user = JSON.parse(localStorage.getItem('user'));
     
     if (!user || !user.id) {
@@ -66,7 +72,11 @@ const StudentDashboard = () => {
       if (response.ok) {
         alert("Success! Your application has been submitted to the database.");
       } else {
-        alert(`Could not apply: ${result.detail}`);
+        // Correctly handle FastAPI validation arrays to prevent [object Object]
+        const errorMessage = typeof result.detail === 'string' 
+          ? result.detail 
+          : JSON.stringify(result.detail);
+        alert(`Could not apply: ${errorMessage}`);
       }
     } catch (error) {
       alert("Network error. Ensure your backend is running.");

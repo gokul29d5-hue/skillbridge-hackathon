@@ -12,8 +12,8 @@ const PostOpportunities = () => {
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
 
-  // Dynamically use the correct live API URL
-  const API_URL = import.meta.env.VITE_API_URL || 'https://skillbridge-api-live.onrender.com';
+  // Strictly hardcoded to bypass old Vercel environment variables
+  const API_URL = 'https://skillbridge-api-live.onrender.com';
 
   const handleChange = (e) => {
     setFormData({
@@ -27,16 +27,16 @@ const PostOpportunities = () => {
     setLoading(true);
     setStatus({ type: '', message: '' });
 
-    // Safely get company ID from localStorage
-    let user;
+    // Use a default company ID of 2 (or parse from localStorage if valid)
+    let companyId = 2;
     try {
-      user = JSON.parse(localStorage.getItem('user'));
-    } catch (error) {
-      user = null;
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (user && user.id) {
+        companyId = user.id;
+      }
+    } catch (err) {
+      // fallback to 2 if parsing fails
     }
-
-    // If no user is logged in, use a fallback company ID (e.g., 2) so the app doesn't break during testing
-    const companyId = user && user.id ? user.id : 2; 
 
     try {
       const response = await fetch(`${API_URL}/api/opportunities`, {
@@ -50,7 +50,7 @@ const PostOpportunities = () => {
           location: formData.location,
           stipend: formData.stipend,
           skills: formData.skills,
-          description: formData.description || "Detailed responsibilities and requirements will be discussed during the interview.",
+          description: formData.description || "Detailed responsibilities will be discussed.",
           company_id: companyId
         })
       });
@@ -61,10 +61,12 @@ const PostOpportunities = () => {
         setStatus({ type: 'success', message: 'Opportunity posted successfully to the live database!' });
         setFormData({ title: '', job_type: 'Internship', location: '', stipend: '', skills: '', description: '' });
       } else {
-        setStatus({ type: 'error', message: `Could not post: ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}` });
+        // If the company ID doesn't exist, let's auto-create a fallback company profile via superadmin or show clean error
+        const errorMessage = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+        setStatus({ type: 'error', message: `Could not post: ${errorMessage}. Try running the setup script in console.` });
       }
     } catch (error) {
-      setStatus({ type: 'error', message: 'Error posting opportunity. Check your API URL connection.' });
+      setStatus({ type: 'error', message: 'Error posting opportunity. Check your connection.' });
     } finally {
       setLoading(false);
     }

@@ -139,6 +139,10 @@ class OpportunityCreate(BaseModel):
     description: str
     company_id: int
 
+class ApplicationCreate(BaseModel):
+    student_id: int
+    opportunity_id: int
+
 # ==========================================
 # API ENDPOINTS
 # ==========================================
@@ -361,6 +365,38 @@ def get_opportunities(db: Session = Depends(get_db)):
         })
         
     return result
+
+# --- JOB APPLICATIONS ENDPOINT (NEW) ---
+@app.post("/api/applications")
+def apply_for_opportunity(app_req: ApplicationCreate, db: Session = Depends(get_db)):
+    # 1. Verify the student exists
+    student = db.query(UserDB).filter(UserDB.id == app_req.student_id, UserDB.role == "student").first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student account not found")
+
+    # 2. Verify the opportunity exists
+    opportunity = db.query(Opportunity).filter(Opportunity.id == app_req.opportunity_id).first()
+    if not opportunity:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+
+    # 3. Check if the student has already applied
+    existing_app = db.query(Application).filter(
+        Application.student_id == app_req.student_id,
+        Application.opportunity_id == app_req.opportunity_id
+    ).first()
+    
+    if existing_app:
+        raise HTTPException(status_code=400, detail="You have already applied for this role.")
+
+    # 4. Save the new application
+    new_app = Application(
+        student_id=app_req.student_id,
+        opportunity_id=app_req.opportunity_id
+    )
+    db.add(new_app)
+    db.commit()
+    
+    return {"message": "Successfully applied for the opportunity!"}
 
 # ==========================================
 # LIVE ANALYTICS DASHBOARD ENDPOINTS

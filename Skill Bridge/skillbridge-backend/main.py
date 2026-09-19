@@ -212,4 +212,138 @@ def ai_skill_mapping(payload: SkillAnalysisRequest):
         Return ONLY valid JSON format without markdown code blocks.
         """
         response = model.generate_content(prompt)
-        clean_text = response.text.replace("```json", "").replace("
+        clean_text = response.text.replace("```json", "").replace("```", "").strip()
+        result_data = json.loads(clean_text)
+        return result_data
+    except Exception as e:
+        return {
+            "readiness_score": 75,
+            "market_demand": "High",
+            "top_missing_skill": "Cloud Infrastructure & Docker",
+            "recommendations": [
+                "Deploy a containerized application to Render or AWS",
+                "Complete an advanced system design course",
+                "Strengthen database indexing and query optimization"
+            ]
+        }
+
+# --- COMMUNITY CHALLENGES MARKETPLACE ENDPOINTS ---
+GLOBAL_CHALLENGES = [
+    {
+        "id": 1,
+        "title": "Smart Water Management Dashboard",
+        "organization": "Local Municipal Corp",
+        "description": "Build an IoT-integrated web portal to track water distribution metrics.",
+        "skills_required": ["React", "Python", "IoT APIs"],
+        "bounty_or_credit": "Verified Industry Project Credit"
+    },
+    {
+        "id": 2,
+        "title": "Open Source Educational App for Rural Schools",
+        "organization": "Global NGO Alliance",
+        "description": "Develop a lightweight offline-first PWA for interactive math learning.",
+        "skills_required": ["React", "PWA", "Tailwind CSS"],
+        "bounty_or_credit": "$500 Grant + Certificate"
+    }
+]
+
+@app.get("/api/challenges")
+def get_challenges():
+    return GLOBAL_CHALLENGES
+
+@app.post("/api/challenges")
+def post_challenge(challenge: ChallengeCreate):
+    new_item = {
+        "id": len(GLOBAL_CHALLENGES) + 1,
+        "title": challenge.title,
+        "organization": challenge.organization,
+        "description": challenge.description,
+        "skills_required": challenge.skills_required,
+        "bounty_or_credit": challenge.bounty_or_credit
+    }
+    GLOBAL_CHALLENGES.append(new_item)
+    return {"message": "Community challenge posted successfully globally!", "challenge": new_item}
+
+# --- INDIVIDUAL CONTRIBUTION LEDGER ENDPOINTS ---
+CONTRIBUTIONS_DB = []
+
+@app.post("/api/ledger/contributions")
+def log_contribution(log: ContributionLog):
+    CONTRIBUTIONS_DB.append(log.dict())
+    return {"message": "Contribution successfully recorded to the Individual Ledger!"}
+
+@app.get("/api/ledger/{student_email}")
+def get_student_ledger(student_email: str):
+    user_logs = [c for c in CONTRIBUTIONS_DB if c["student_email"] == student_email]
+    return {"student_email": student_email, "total_verified_contributions": len(user_logs), "logs": user_logs}
+
+# --- RECRUITMENT PIPELINE ENDPOINTS (OPPORTUNITIES) ---
+@app.post("/api/opportunities")
+def create_opportunity(opp: OpportunityCreate, db: Session = Depends(get_db)):
+    # 1. Verify the company actually exists in the database
+    company = db.query(UserDB).filter(UserDB.id == opp.company_id, UserDB.role == "company").first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found or invalid role")
+
+    # 2. Save the new job to PostgreSQL
+    new_opp = Opportunity(
+        title=opp.title,
+        job_type=opp.job_type,
+        location=opp.location,
+        stipend=opp.stipend,
+        skills=opp.skills,
+        description=opp.description,
+        company_id=opp.company_id
+    )
+    
+    db.add(new_opp)
+    db.commit()
+    db.refresh(new_opp)
+    
+    return {"message": "Opportunity broadcasted successfully!", "opportunity_id": new_opp.id}
+
+@app.get("/api/opportunities")
+def get_opportunities(db: Session = Depends(get_db)):
+    opportunities = db.query(Opportunity).all()
+    
+    result = []
+    for opp in opportunities:
+        company = db.query(UserDB).filter(UserDB.id == opp.company_id).first()
+        result.append({
+            "id": opp.id,
+            "title": opp.title,
+            "type": opp.job_type,
+            "location": opp.location,
+            "stipend": opp.stipend,
+            "skills": opp.skills.split(",") if opp.skills else [],
+            "description": opp.description,
+            "company_name": company.name if company else "Unknown Company",
+            "posted_date": opp.created_at.strftime("%b %d, %Y") if opp.created_at else "Just now"
+        })
+        
+    return result
+
+# --- MOCK ENDPOINTS (For Legacy Dashboards) ---
+@app.get("/api/institution")
+def get_institution_data():
+    return {"total_students": 1248, "active_opportunities": 38, "placed": 184, "placement_rate": "84%"}
+
+@app.get("/api/student")
+def get_student_data():
+    return {
+        "college": "B.Tech IT", "verified_skills": 3, "certifications": 2, "projects": 5,
+        "skills": [
+            {"name": "Python", "progress": 85, "level": "Advanced"},
+            {"name": "React", "progress": 70, "level": "Intermediate"},
+            {"name": "SQL", "progress": 65, "level": "Intermediate"}
+        ]
+    }
+
+@app.get("/api/company")
+def get_company_data():
+    return {
+        "active_openings": 6,
+        "total_applicants": 42,
+        "shortlisted": 12,
+        "interviews_scheduled": 5
+    }

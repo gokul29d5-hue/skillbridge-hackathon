@@ -2,35 +2,86 @@ import React, { useState, useEffect } from 'react';
 
 const StudentDashboard = () => {
   const [data, setData] = useState(null);
+  const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch('https://skillbridge-api-vslj.onrender.com/api/student')
-      .then(res => res.json())
-      .then(fetchedData => {
-        setData(fetchedData);
-        setLoading(false);
-      })
-      .catch(() => {
-        setData({
-          name: "Aarav Sharma",
-          college: "Computer Science Engineering • 3rd Year • XYZ College",
-          verified_skills: 3,
-          certifications: 2,
-          projects: 5,
-          skills: [
-            { name: "Python", progress: 85, level: "Advanced" },
-            { name: "Java", progress: 70, level: "Intermediate" },
-            { name: "SQL", progress: 65, level: "Intermediate" },
-            { name: "Communication", progress: 50, level: "Basic" },
-            { name: "Teamwork", progress: 90, level: "Advanced" }
-          ]
-        });
-        setLoading(false);
-      });
-  }, []);
+  // Automatically use the live Vercel/Render API URL
+  const API_URL = import.meta.env.VITE_API_URL || 'https://skillbridge-api-live.onrender.com';
 
-  if (loading) return <div className="text-slate-500 p-8 font-medium">Loading Student Dashboard...</div>;
+  useEffect(() => {
+    // 1. Get the currently logged-in user from local storage
+    const user = JSON.parse(localStorage.getItem('user')) || { email: "student@example.com" };
+
+    // 2. Fetch both the real student data and the real live jobs from the database
+    Promise.all([
+      fetch(`${API_URL}/api/student/${user.email}`).then(res => res.json()).catch(() => null),
+      fetch(`${API_URL}/api/opportunities`).then(res => res.json()).catch(() => [])
+    ]).then(([studentData, oppsData]) => {
+      
+      // Merge live backend data with fallback UI data so the page doesn't crash
+      setData({
+        name: studentData?.name || "Aarav Sharma",
+        college: studentData?.college || "Computer Science Engineering • 3rd Year",
+        verified_skills: studentData?.verified_skills || 3,
+        certifications: studentData?.certifications || 2,
+        projects: studentData?.projects || 5,
+        skills: studentData?.skills || [
+          { name: "Python", progress: 85, level: "Advanced" },
+          { name: "Java", progress: 70, level: "Intermediate" },
+          { name: "SQL", progress: 65, level: "Intermediate" },
+          { name: "Communication", progress: 50, level: "Basic" },
+          { name: "Teamwork", progress: 90, level: "Advanced" }
+        ]
+      });
+
+      // Set the live job board data
+      if (Array.isArray(oppsData)) {
+        setOpportunities(oppsData);
+      }
+      setLoading(false);
+    });
+  }, [API_URL]);
+
+  // --- NEW: Handle the Apply Button Click ---
+  const handleApply = async (opportunityId) => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    
+    if (!user || !user.id) {
+      alert("Please log in as a student to apply for roles.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/applications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: user.id,
+          opportunity_id: opportunityId
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert("Success! Your application has been submitted to the database.");
+      } else {
+        alert(`Could not apply: ${result.detail}`);
+      }
+    } catch (error) {
+      alert("Network error. Ensure your backend is running.");
+    }
+  };
+
+  // Fallback jobs just in case the database is completely empty
+  const fallbackJobs = [
+    { title: "Software Development Intern", company_name: "Google", location: "Remote", skills: ["Python", "App Development"] },
+    { title: "Data Science Intern", company_name: "Microsoft", location: "Bangalore, India", skills: ["Data Analysis", "Machine Learning"] }
+  ];
+
+  const displayJobs = opportunities.length > 0 ? opportunities : fallbackJobs;
+
+  if (loading) return <div className="text-slate-500 p-8 font-medium">Loading Live Dashboard...</div>;
 
   return (
     <div className="space-y-6">
@@ -60,7 +111,7 @@ const StudentDashboard = () => {
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-bold">AS</div>
+              <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-bold">ST</div>
               <div>
                 <h3 className="font-bold text-slate-800 text-base">{data.name}</h3>
                 <p className="text-xs text-slate-500">{data.college}</p>
@@ -131,29 +182,27 @@ const StudentDashboard = () => {
       {/* Recommended Internships & Learning Paths Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Recommended Internships */}
+        {/* LIVE: Recommended Internships */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 text-sm">Recommended Internships</h3>
+            <h3 className="font-bold text-slate-800 text-sm">Live Job Opportunities</h3>
             <span className="text-xs text-blue-600 font-semibold cursor-pointer hover:underline">View All →</span>
           </div>
           <div className="space-y-3">
-            {[
-              { role: "Software Development Intern", company: "Google", location: "Remote", tags: ["Python", "App Development"] },
-              { role: "Data Science Intern", company: "Microsoft", location: "Bangalore, India", tags: ["Data Analysis", "Machine Learning"] },
-              { role: "Frontend Developer Intern", company: "TCS", location: "Hyderabad, India", tags: ["React", "JavaScript"] }
-            ].map((job, idx) => (
+            {displayJobs.map((job, idx) => (
               <div key={idx} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
                 <div>
-                  <h4 className="font-bold text-slate-800 text-xs">{job.role}</h4>
-                  <p className="text-[11px] text-slate-500">{job.company} • {job.location}</p>
-                  <div className="flex gap-1 mt-2">
-                    {job.tags.map((t, i) => (
+                  <h4 className="font-bold text-slate-800 text-xs">{job.title || job.role}</h4>
+                  <p className="text-[11px] text-slate-500">{job.company_name || job.company} • {job.location}</p>
+                  <div className="flex gap-1 mt-2 flex-wrap">
+                    {(job.skills || job.tags || []).map((t, i) => (
                       <span key={i} className="text-[9px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded-md font-medium">{t}</span>
                     ))}
                   </div>
                 </div>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer shadow-xs">
+                <button 
+                  onClick={() => handleApply(job.id)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer shadow-xs">
                   Apply
                 </button>
               </div>

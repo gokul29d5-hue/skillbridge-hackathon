@@ -9,6 +9,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
 import google.generativeai as genai
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import make_pipeline
 
 # Import the database and security files
 from database import SessionLocal, engine, UserDB, Opportunity, Application
@@ -34,9 +38,43 @@ def get_db():
     finally:
         db.close()
 
-# --- AUTO-CREATE SUPER ADMIN ---
+# --- GLOBAL ML MODEL ---
+skill_model_pipeline = None
+
+def train_ml_model():
+    """Trains the scikit-learn model in memory when the server starts."""
+    global skill_model_pipeline
+    
+    synthetic_data = [
+        {"target_role": "Frontend Developer", "skills": "React, HTML, CSS, JavaScript, Tailwind", "score": 95},
+        {"target_role": "Frontend Developer", "skills": "HTML, CSS, JavaScript", "score": 60},
+        {"target_role": "Frontend Developer", "skills": "Python, SQL", "score": 15},
+        {"target_role": "Backend Developer", "skills": "Python, FastAPI, PostgreSQL, Docker", "score": 98},
+        {"target_role": "Backend Developer", "skills": "Python, SQL", "score": 55},
+        {"target_role": "Backend Developer", "skills": "HTML, CSS, React", "score": 10},
+        {"target_role": "Data Scientist", "skills": "Python, Pandas, Scikit-Learn, SQL, Math", "score": 92},
+        {"target_role": "Data Scientist", "skills": "Python, SQL", "score": 45},
+        {"target_role": "Senior Game Developer", "skills": "C++, Unreal Engine, 3D Math, Physics", "score": 90},
+        {"target_role": "Senior Game Developer", "skills": "C#, Unity", "score": 50},
+    ]
+    
+    df = pd.DataFrame(synthetic_data)
+    df["features"] = df["target_role"] + " " + df["skills"]
+    
+    skill_model_pipeline = make_pipeline(
+        TfidfVectorizer(),
+        RandomForestRegressor(n_estimators=100, random_state=42)
+    )
+    skill_model_pipeline.fit(df["features"], df["score"])
+    print("Scikit-learn model trained in-memory successfully!")
+
+# --- STARTUP EVENTS ---
 @app.on_event("startup")
-def setup_super_admin():
+def startup_event():
+    # 1. Train the ML model
+    train_ml_model()
+    
+    # 2. Setup Super Admin
     db = SessionLocal()
     admin = db.query(UserDB).filter(UserDB.email == "admin@skillbridge.com").first()
     if not admin:
@@ -94,12 +132,12 @@ class ContributionLog(BaseModel):
 
 class OpportunityCreate(BaseModel):
     title: str
-    job_type: str    # Maps to the "type" field in React (Internship, etc.)
+    job_type: str
     location: str
     stipend: str
     skills: str
     description: str
-    company_id: int  # We need to know which company posted this!
+    company_id: int
 
 # ==========================================
 # API ENDPOINTS
@@ -194,18 +232,24 @@ def get_institution_students(db: Session = Depends(get_db)):
         })
     return student_list
 
-# --- AI SKILL MAPPING ENDPOINT (GEMINI) ---
+# --- HYBRID AI SKILL MAPPING ENDPOINT ---
 @app.post("/api/ai/skill-mapping")
 def ai_skill_mapping(payload: SkillAnalysisRequest):
     try:
+        # 1. Scikit-Learn mathematically predicts the readiness score
+        student_profile = f"{payload.target_role} {', '.join(payload.student_skills)}"
+        predicted_score = int(skill_model_pipeline.predict([student_profile])[0])
+        
+        # 2. Gemini generates the text recommendations using that score
         model = genai.GenerativeModel('gemini-1.5-flash')
         prompt = f"""
-        Act as an expert AI career and curriculum advisor for a tech placement platform.
+        Act as an expert AI career and curriculum advisor.
         Analyze a student targeting the role of '{payload.target_role}'.
-        The student's current verified skills and proficiencies are: {payload.student_skills}.
+        Their current skills are: {payload.student_skills}.
+        Our machine learning algorithm has assigned them a readiness score of {predicted_score}/100.
         
         Provide a JSON response with:
-        1. 'readiness_score': an integer percentage (0-100).
+        1. 'readiness_score': {predicted_score} (You MUST use this exact integer).
         2. 'market_demand': a string like 'Very High' or 'Moderate'.
         3. 'top_missing_skill': a short string identifying the biggest gap.
         4. 'recommendations': a list of 3 specific, actionable learning steps.
@@ -215,16 +259,20 @@ def ai_skill_mapping(payload: SkillAnalysisRequest):
         response = model.generate_content(prompt)
         clean_text = response.text.replace("```json", "").replace("```", "").strip()
         result_data = json.loads(clean_text)
+        
+        # Enforce the scikit-learn score just in case Gemini hallucinates
+        result_data["readiness_score"] = predicted_score
+        
         return result_data
     except Exception as e:
         return {
-            "readiness_score": 75,
+            "readiness_score": 50,
             "market_demand": "High",
-            "top_missing_skill": "Cloud Infrastructure & Docker",
+            "top_missing_skill": "General Technical Proficiency",
             "recommendations": [
-                "Deploy a containerized application to Render or AWS",
-                "Complete an advanced system design course",
-                "Strengthen database indexing and query optimization"
+                "Review foundational concepts for your target role",
+                "Complete a guided project to build a portfolio",
+                "Practice algorithmic problem solving"
             ]
         }
 
@@ -237,14 +285,6 @@ GLOBAL_CHALLENGES = [
         "description": "Build an IoT-integrated web portal to track water distribution metrics.",
         "skills_required": ["React", "Python", "IoT APIs"],
         "bounty_or_credit": "Verified Industry Project Credit"
-    },
-    {
-        "id": 2,
-        "title": "Open Source Educational App for Rural Schools",
-        "organization": "Global NGO Alliance",
-        "description": "Develop a lightweight offline-first PWA for interactive math learning.",
-        "skills_required": ["React", "PWA", "Tailwind CSS"],
-        "bounty_or_credit": "$500 Grant + Certificate"
     }
 ]
 
@@ -281,12 +321,10 @@ def get_student_ledger(student_email: str):
 # --- RECRUITMENT PIPELINE ENDPOINTS (OPPORTUNITIES) ---
 @app.post("/api/opportunities")
 def create_opportunity(opp: OpportunityCreate, db: Session = Depends(get_db)):
-    # 1. Verify the company actually exists in the database
     company = db.query(UserDB).filter(UserDB.id == opp.company_id, UserDB.role == "company").first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found or invalid role")
 
-    # 2. Save the new job to PostgreSQL
     new_opp = Opportunity(
         title=opp.title,
         job_type=opp.job_type,
@@ -330,12 +368,10 @@ def get_opportunities(db: Session = Depends(get_db)):
 
 @app.get("/api/institution")
 def get_institution_data(db: Session = Depends(get_db)):
-    # Calculate real-time totals from the database
     total_students = db.query(func.count(UserDB.id)).filter(UserDB.role == "student").scalar() or 0
     active_opportunities = db.query(func.count(Opportunity.id)).scalar() or 0
     placed = db.query(func.count(Application.id)).filter(Application.status == "Hired").scalar() or 0
     
-    # Safely calculate placement percentage
     placement_rate = f"{int((placed / total_students) * 100)}%" if total_students > 0 else "0%"
 
     return {
@@ -347,10 +383,8 @@ def get_institution_data(db: Session = Depends(get_db)):
 
 @app.get("/api/company/{company_id}")
 def get_company_data(company_id: int, db: Session = Depends(get_db)):
-    # Filter stats specifically for the logged-in company
     active_openings = db.query(func.count(Opportunity.id)).filter(Opportunity.company_id == company_id).scalar() or 0
     
-    # Join Application and Opportunity tables to count relevant candidates
     total_applicants = db.query(func.count(Application.id)).join(Opportunity).filter(Opportunity.company_id == company_id).scalar() or 0
     shortlisted = db.query(func.count(Application.id)).join(Opportunity).filter(Opportunity.company_id == company_id, Application.status == "Shortlisted").scalar() or 0
     interviews_scheduled = db.query(func.count(Application.id)).join(Opportunity).filter(Opportunity.company_id == company_id, Application.status == "Interview").scalar() or 0
@@ -376,7 +410,7 @@ def get_student_data(student_email: str, db: Session = Depends(get_db)):
         "college": "Vel Tech Multi Tech - B.Tech IT",
         "applications_submitted": applications_submitted,
         "interviews_pending": interviews_pending,
-        "verified_skills": 3,   # Hardcoded until the dedicated Skills table is built
-        "certifications": 2,    # Hardcoded until the dedicated Certifications table is built
-        "projects": 5           # Hardcoded until the dedicated Projects table is built
+        "verified_skills": 3,
+        "certifications": 2,
+        "projects": 5
     }

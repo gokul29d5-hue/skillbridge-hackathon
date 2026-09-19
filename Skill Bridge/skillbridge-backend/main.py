@@ -6,11 +6,12 @@ from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 import google.generativeai as genai
 
 # Import the database and security files
-from database import SessionLocal, engine, UserDB, Opportunity
+from database import SessionLocal, engine, UserDB, Opportunity, Application
 from security import get_password_hash, verify_password
 
 app = FastAPI(title="SkillBridge API")
@@ -323,27 +324,59 @@ def get_opportunities(db: Session = Depends(get_db)):
         
     return result
 
-# --- MOCK ENDPOINTS (For Legacy Dashboards) ---
-@app.get("/api/institution")
-def get_institution_data():
-    return {"total_students": 1248, "active_opportunities": 38, "placed": 184, "placement_rate": "84%"}
+# ==========================================
+# LIVE ANALYTICS DASHBOARD ENDPOINTS
+# ==========================================
 
-@app.get("/api/student")
-def get_student_data():
+@app.get("/api/institution")
+def get_institution_data(db: Session = Depends(get_db)):
+    # Calculate real-time totals from the database
+    total_students = db.query(func.count(UserDB.id)).filter(UserDB.role == "student").scalar() or 0
+    active_opportunities = db.query(func.count(Opportunity.id)).scalar() or 0
+    placed = db.query(func.count(Application.id)).filter(Application.status == "Hired").scalar() or 0
+    
+    # Safely calculate placement percentage
+    placement_rate = f"{int((placed / total_students) * 100)}%" if total_students > 0 else "0%"
+
     return {
-        "college": "B.Tech IT", "verified_skills": 3, "certifications": 2, "projects": 5,
-        "skills": [
-            {"name": "Python", "progress": 85, "level": "Advanced"},
-            {"name": "React", "progress": 70, "level": "Intermediate"},
-            {"name": "SQL", "progress": 65, "level": "Intermediate"}
-        ]
+        "total_students": total_students,
+        "active_opportunities": active_opportunities,
+        "placed": placed,
+        "placement_rate": placement_rate
     }
 
-@app.get("/api/company")
-def get_company_data():
+@app.get("/api/company/{company_id}")
+def get_company_data(company_id: int, db: Session = Depends(get_db)):
+    # Filter stats specifically for the logged-in company
+    active_openings = db.query(func.count(Opportunity.id)).filter(Opportunity.company_id == company_id).scalar() or 0
+    
+    # Join Application and Opportunity tables to count relevant candidates
+    total_applicants = db.query(func.count(Application.id)).join(Opportunity).filter(Opportunity.company_id == company_id).scalar() or 0
+    shortlisted = db.query(func.count(Application.id)).join(Opportunity).filter(Opportunity.company_id == company_id, Application.status == "Shortlisted").scalar() or 0
+    interviews_scheduled = db.query(func.count(Application.id)).join(Opportunity).filter(Opportunity.company_id == company_id, Application.status == "Interview").scalar() or 0
+
     return {
-        "active_openings": 6,
-        "total_applicants": 42,
-        "shortlisted": 12,
-        "interviews_scheduled": 5
+        "active_openings": active_openings,
+        "total_applicants": total_applicants,
+        "shortlisted": shortlisted,
+        "interviews_scheduled": interviews_scheduled
+    }
+
+@app.get("/api/student/{student_email}")
+def get_student_data(student_email: str, db: Session = Depends(get_db)):
+    student = db.query(UserDB).filter(UserDB.email == student_email).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    applications_submitted = db.query(func.count(Application.id)).filter(Application.student_id == student.id).scalar() or 0
+    interviews_pending = db.query(func.count(Application.id)).filter(Application.student_id == student.id, Application.status.in_(["Shortlisted", "Interview"])).scalar() or 0
+
+    return {
+        "name": student.name,
+        "college": "Vel Tech Multi Tech - B.Tech IT",
+        "applications_submitted": applications_submitted,
+        "interviews_pending": interviews_pending,
+        "verified_skills": 3,   # Hardcoded until the dedicated Skills table is built
+        "certifications": 2,    # Hardcoded until the dedicated Certifications table is built
+        "projects": 5           # Hardcoded until the dedicated Projects table is built
     }

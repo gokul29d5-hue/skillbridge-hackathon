@@ -5,8 +5,8 @@ const StudentDashboard = () => {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Automatically use the live Vercel/Render API URL
-  const API_URL = import.meta.env.VITE_API_URL || 'https://skillbridge-api-live.onrender.com';
+  // Strictly hardcoded to bypass old Vercel environment variables
+  const API_URL = 'https://skillbridge-api-live.onrender.com';
 
   useEffect(() => {
     // 1. Get the currently logged-in user from local storage
@@ -40,7 +40,7 @@ const StudentDashboard = () => {
       }
       setLoading(false);
     });
-  }, [API_URL]);
+  }, []);
 
   // --- UPDATED: Handle the Apply Button Click ---
   const handleApply = async (opportunityId) => {
@@ -52,7 +52,7 @@ const StudentDashboard = () => {
 
     const user = JSON.parse(localStorage.getItem('user'));
     
-    if (!user || !user.id) {
+    if (!user || !user.id || user.role !== 'student') {
       alert("Please log in as a student to apply for roles.");
       return;
     }
